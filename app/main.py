@@ -76,6 +76,8 @@ async def show_stats_by_code(request: Request, code: str = None, db: Session = D
 # صفحه آمار
 @app.get("/stats/{short_code}", response_class=HTMLResponse)
 async def show_stats(request: Request, short_code: str, db: Session = Depends(get_db)):
+    from .date_utils import gregorian_to_jalali, format_remaining_days
+
     db_url = services.get_url_info(db, short_code)
 
     url_info = None
@@ -85,7 +87,8 @@ async def show_stats(request: Request, short_code: str, db: Session = Depends(ge
             "url": db_url.original_url,
             "short_code": db_url.short_code,
             "clicks": db_url.clicks,
-            "expires_at": db_url.expires_at.strftime("%Y-%m-%d %H:%M:%S") if db_url.expires_at else None
+            "expires_at": gregorian_to_jalali(db_url.expires_at),
+            "remaining_time": format_remaining_days(db_url.expires_at)
         }
 
     return templates.TemplateResponse(
@@ -185,6 +188,8 @@ def extend_expiry(short_code: str, request_data: ExtendExpiryRequest, db: Sessio
 # صفحه تمدید تاریخ انقضا
 @app.get("/extend/{short_code}", response_class=HTMLResponse)
 async def extend_expiry_page(request: Request, short_code: str, db: Session = Depends(get_db)):
+    from .date_utils import gregorian_to_jalali, format_remaining_days
+
     db_url = services.get_url_info(db, short_code)
 
     url_info = None
@@ -194,7 +199,8 @@ async def extend_expiry_page(request: Request, short_code: str, db: Session = De
             "url": db_url.original_url,
             "short_code": db_url.short_code,
             "clicks": db_url.clicks,
-            "expires_at": db_url.expires_at.strftime("%Y-%m-%d %H:%M:%S") if db_url.expires_at else "بدون تاریخ انقضا"
+            "expires_at": gregorian_to_jalali(db_url.expires_at),
+            "remaining_time": format_remaining_days(db_url.expires_at)
         }
 
     return templates.TemplateResponse(

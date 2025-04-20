@@ -6,3 +6,4 @@ python-nanoid
 aiosqlite
 jinja2
 python-multipart
+jdatetime

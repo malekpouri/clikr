@@ -2,6 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# نصب cron و تنظیم پیش‌نیازها
+RUN apt-get update && apt-get -y install cron && apt-get clean
+
 # کپی فایل‌های مورد نیاز
 COPY requirements.txt .
 
@@ -12,7 +15,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # ساخت فولدرهای مورد نیاز
-RUN mkdir -p app/static app/templates
+RUN mkdir -p app/static app/templates logs
+
+# تنظیم cron job
+RUN echo "0 2 * * 0 cd /app && python /app/app/cleanup.py >> /app/logs/cleanup.log 2>&1" > /etc/cron.d/clikr-cron
+RUN chmod 0644 /etc/cron.d/clikr-cron
+RUN crontab /etc/cron.d/clikr-cron
+
+# ایجاد فایل لاگ
+RUN mkdir -p /app/logs
+RUN touch /app/logs/cleanup.log
+RUN chmod 0666 /app/logs/cleanup.log
 
 # مشخص کردن پورت
 EXPOSE 8000
@@ -21,5 +34,9 @@ EXPOSE 8000
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
+# اسکریپت راه‌اندازی
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # راه‌اندازی برنامه
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/entrypoint.sh"]

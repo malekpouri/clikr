@@ -9,6 +9,7 @@ services:
     volumes:
       - ./app:/app/app
       - ./clikr.db:/app/clikr.db
+      - ./logs:/app/logs
     restart: unless-stopped
     deploy:
       resources:
@@ -17,3 +18,7 @@ services:
           memory: 100M
     environment:
       - TZ=Asia/Tehran
+      - EXPIRY_DAYS=90
+      - INACTIVE_DAYS=180
+      - UNUSED_DAYS=365
+      - MIN_CLICKS=1
