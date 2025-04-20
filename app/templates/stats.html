@@ -45,6 +45,17 @@
 
                     <h5 class="text-lg font-bold mb-2">لینک اصلی:</h5>
                     <div class="url-display">{{ url_info.url }}</div>
+
+                    {% if url_info.expires_at %}
+                    <h5 class="text-lg font-bold mb-2">تاریخ انقضا:</h5>
+                    <div class="url-display">{{ url_info.expires_at }}</div>
+
+                    <div class="text-center mt-4">
+                        <a href="/extend/{{ url_info.short_code }}" class="btn-primary">
+                            <i class="fas fa-clock ml-1"></i> تمدید تاریخ انقضا
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             {% else %}
                 <div class="bg-yellow-100 border-r-4 border-yellow-500 text-yellow-700 p-4 mb-4">
