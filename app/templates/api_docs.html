@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fa" class="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مستندات API - clikr</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', path='/favicon/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', path='/favicon/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', path='/favicon/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ url_for('static', path='/favicon/site.webmanifest') }}">
+    <style>
+        .code-block {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 1rem 0;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .code-block pre,
+        .code-block code {
+            direction: ltr;
+            text-align: left;
+        }
+
+        .method {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .method-post {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .method-get {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .endpoint {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .api-section {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .api-section:last-child {
+            border-bottom: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: right;
+            border: 1px solid #e5e7eb;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        .copy-btn {
+            float: right; /* تغییر از left به right */
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            margin-top: -0.5rem;
+            margin-left: 0.5rem; /* اضافه کردن margin-left برای فاصله */
+            margin-right: 0; /* حذف margin-right اگر وجود داشت */
+        }
+    </style>
+</head>
+<body>
+<div class="main-container">
+    <header class="text-center mb-6">
+        <a href="/" class="text-decoration-none">
+            <div class="logo">clikr</div>
+        </a>
+        <p class="text-lg text-gray-600 mb-4">مستندات API</p>
+        <a href="/" class="btn-outline-primary mr-2">
+            <i class="fas fa-home ml-1"></i> صفحه اصلی
+        </a>
+        <a href="/stats" class="btn-outline-primary">
+            <i class="fas fa-chart-bar ml-1"></i> آمار لینک‌ها
+        </a>
+    </header>
+
+    <section class="url-form">
+        <h1 class="text-2xl font-bold mb-4">مستندات API کوتاه‌کننده لینک clikr</h1>
+        <p class="mb-6">
+            API های clikr به شما امکان می‌دهند تا به صورت برنامه‌نویسی از سرویس کوتاه‌کننده لینک استفاده کنید.
+            با استفاده از این API‌ها می‌توانید لینک‌های کوتاه ایجاد کنید، اطلاعات آن‌ها را دریافت کنید و آمار کلیک‌ها را
+            بررسی کنید.
+        </p>
+
+        <div class="api-section">
+            <h2 class="text-xl font-bold mb-3">آدرس پایه API</h2>
+            <div class="url-display">{{ base_url }}api/</div>
+        </div>
+
+        <div class="api-section">
+            <h2 class="text-xl font-bold mb-3">کوتاه کردن لینک</h2>
+            <div class="mb-2">
+                <span class="method method-post">POST</span>
+                <span class="endpoint">/api/shorten</span>
+            </div>
+            <p class="mb-3">
+                با استفاده از این API می‌توانید یک لینک بلند را به یک لینک کوتاه تبدیل کنید.
+            </p>
+
+            <h3 class="text-lg font-bold mb-2">پارامترهای درخواست:</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>پارامتر</th>
+                    <th>نوع</th>
+                    <th>توضیحات</th>
+                    <th>اجباری</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>url</td>
+                    <td>string</td>
+                    <td>لینک اصلی که می‌خواهید کوتاه کنید</td>
+                    <td>بله</td>
+                </tr>
+                <tr>
+                    <td>max_clicks</td>
+                    <td>integer</td>
+                    <td>حداکثر تعداد کلیک مجاز (اختیاری)</td>
+                    <td>خیر</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h3 class="text-lg font-bold mb-2">مثال درخواست:</h3>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyToClipboard('curl-example-1')">کپی</button>
+                <pre><code id="curl-example-1">curl -X POST "{{ base_url }}api/shorten" \
+     -H "Content-Type: application/json" \
+     -d '{"url": "https://example.com/your-very-long-url-that-needs-shortening", "max_clicks": 100}'</code></pre>
+            </div>
+
+            <h3 class="text-lg font-bold mb-2">مثال پاسخ:</h3>
+            <div class="code-block">
+                    <pre><code>{
+  "url": "https://example.com/your-very-long-url-that-needs-shortening",
+  "short_code": "Ab3X9z",
+  "clicks": 0
+}</code></pre>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <h2 class="text-xl font-bold mb-3">دریافت اطلاعات لینک کوتاه</h2>
+            <div class="mb-2">
+                <span class="method method-get">GET</span>
+                <span class="endpoint">/api/info/{short_code}</span>
+            </div>
+            <p class="mb-3">
+                با استفاده از این API می‌توانید اطلاعات یک لینک کوتاه را دریافت کنید.
+            </p>
+
+            <h3 class="text-lg font-bold mb-2">پارامترهای مسیر:</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>پارامتر</th>
+                    <th>نوع</th>
+                    <th>توضیحات</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>short_code</td>
+                    <td>string</td>
+                    <td>کد کوتاه لینک</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h3 class="text-lg font-bold mb-2">مثال درخواست:</h3>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyToClipboard('curl-example-2')">کپی</button>
+                <pre><code id="curl-example-2">curl "{{ base_url }}api/info/Ab3X9z"</code></pre>
+            </div>
+
+            <h3 class="text-lg font-bold mb-2">مثال پاسخ:</h3>
+            <div class="code-block">
+                    <pre><code>{
+  "url": "https://example.com/your-very-long-url-that-needs-shortening",
+  "short_code": "Ab3X9z",
+  "clicks": 5
+}</code></pre>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <h2 class="text-xl font-bold mb-3">نمونه کد در زبان‌های مختلف</h2>
+
+            <h3 class="text-lg font-bold mb-2">کوتاه کردن لینک با JavaScript:</h3>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyToClipboard('js-example')">کپی</button>
+                <pre><code id="js-example">// با استفاده از Fetch API
+async function shortenUrl(url, maxClicks = null) {
+  const response = await fetch('{{ base_url }}api/shorten', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      url: url,
+      max_clicks: maxClicks
+    })
+  });
+
+  const data = await response.json();
+  return data;
+}
+
+// استفاده از تابع
+shortenUrl('https://example.com/long-url', 100)
+  .then(result => console.log(result))
+  .catch(error => console.error('Error:', error));</code></pre>
+            </div>
+
+            <h3 class="text-lg font-bold mb-2">کوتاه کردن لینک با Python:</h3>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyToClipboard('python-example')">کپی</button>
+                <pre><code id="python-example">import requests
+import json
+
+def shorten_url(url, max_clicks=None):
+    api_url = '{{ base_url }}api/shorten'
+    payload = {'url': url}
+
+    if max_clicks is not None:
+        payload['max_clicks'] = max_clicks
+
+    headers = {'Content-Type': 'application/json'}
+
+    response = requests.post(api_url, data=json.dumps(payload), headers=headers)
+
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Error: {response.status_code}, {response.text}")
+
+# استفاده از تابع
+try:
+    result = shorten_url('https://example.com/long-url', max_clicks=100)
+    print(result)
+except Exception as e:
+    print(e)</code></pre>
+            </div>
+
+            <h3 class="text-lg font-bold mb-2">دریافت اطلاعات لینک با cURL:</h3>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyToClipboard('curl-example-3')">کپی</button>
+                <pre><code id="curl-example-3">curl "{{ base_url }}api/info/Ab3X9z" | jq</code></pre>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <h2 class="text-xl font-bold mb-3">کدهای پاسخ</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>کد</th>
+                    <th>توضیحات</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>200</td>
+                    <td>درخواست با موفقیت انجام شد</td>
+                </tr>
+                <tr>
+                    <td>400</td>
+                    <td>درخواست نامعتبر (مثلاً URL نامعتبر)</td>
+                </tr>
+                <tr>
+                    <td>404</td>
+                    <td>لینک کوتاه یافت نشد</td>
+                </tr>
+                <tr>
+                    <td>500</td>
+                    <td>خطای داخلی سرور</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <p>clikr &copy; ۱۴۰۴ - سرویس کوتاه‌کننده لینک</p>
+    </footer>
+</div>
+
+<script>
+    function copyToClipboard(elementId) {
+        const textToCopy = document.getElementById(elementId).textContent;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            alert('کد مورد نظر کپی شد!');
+        }).catch(err => {
+            console.error('خطا در کپی کردن: ', err);
+
+            // روش جایگزین برای مرورگرهای قدیمی
+            const textArea = document.createElement('textarea');
+            textArea.value = textToCopy;
+            textArea.style.position = 'fixed';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                alert('کد مورد نظر کپی شد!');
+            } catch (err) {
+                console.error('خطا در کپی کردن: ', err);
+                alert('امکان کپی کردن وجود ندارد. لطفاً به صورت دستی کپی کنید.');
+            }
+
+            document.body.removeChild(textArea);
+        });
+    }
+</script>
+</body>
+</html>
