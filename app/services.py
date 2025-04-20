@@ -7,7 +7,7 @@ from .utils import generate_short_code, normalize_url
 
 
 # تابع ایجاد URL کوتاه جدید
-def create_short_url(db: Session, original_url: str, expiry_days: int = 90) -> models.URL:
+def create_short_url(db: Session, original_url: str, expiry_days: int = 90, max_clicks: int = None) -> models.URL:
     # نرمال‌سازی URL
     normalized_url = normalize_url(original_url)
 
@@ -20,6 +20,8 @@ def create_short_url(db: Session, original_url: str, expiry_days: int = 90) -> m
     if db_url:
         # به‌روزرسانی تاریخ انقضا
         db_url.expires_at = datetime.now() + timedelta(days=expiry_days)
+        if max_clicks is not None:
+            db_url.max_clicks = max_clicks
         db.commit()
         db.refresh(db_url)
         return db_url
@@ -32,7 +34,8 @@ def create_short_url(db: Session, original_url: str, expiry_days: int = 90) -> m
         db_url = models.URL(
             original_url=normalized_url,
             short_code=short_code,
-            expires_at=expires_at
+            expires_at=expires_at,
+            max_clicks=max_clicks
         )
         db.add(db_url)
         try:
@@ -58,6 +61,13 @@ def get_original_url(db: Session, short_code: str) -> str:
         db_url.is_active = False
         db.commit()
         return None
+
+    # بررسی محدودیت تعداد کلیک
+    if db_url.max_clicks is not None:
+        if db_url.clicks >= db_url.max_clicks:
+            db_url.is_active = False
+            db.commit()
+            return None
 
     # به‌روزرسانی زمان آخرین دسترسی و تعداد کلیک‌ها
     db_url.last_accessed = datetime.now()

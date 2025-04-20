@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fa" class="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خطا - clikr</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', path='/favicon/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', path='/favicon/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', path='/favicon/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ url_for('static', path='/favicon/site.webmanifest') }}">
+</head>
+<body>
+    <div class="container main-container">
+        <div class="text-center">
+            <a href="/" class="text-decoration-none">
+                <div class="logo">clikr</div>
+            </a>
+            <p class="text-lg text-gray-600 mb-4">سرویس کوتاه‌کننده لینک</p>
+        </div>
+
+        <div class="url-form">
+            <div class="text-center mb-4">
+                <i class="fas fa-exclamation-circle text-red-500 text-6xl mb-4"></i>
+                <h4 class="text-xl font-bold">{{ error_title }}</h4>
+                <p class="mt-2 text-gray-600">{{ error_message }}</p>
+            </div>
+
+            {% if error_type == 'max_clicks' %}
+                <div class="bg-yellow-100 border-r-4 border-yellow-500 text-yellow-700 p-4 mb-4">
+                    این لینک به محدودیت تعداد کلیک رسیده و غیرفعال شده است.
+                </div>
+            {% elif error_type == 'expired' %}
+                <div class="bg-yellow-100 border-r-4 border-yellow-500 text-yellow-700 p-4 mb-4">
+                    تاریخ انقضای این لینک به پایان رسیده است.
+                </div>
+            {% elif error_type == 'not_found' %}
+                <div class="bg-yellow-100 border-r-4 border-yellow-500 text-yellow-700 p-4 mb-4">
+                    لینک مورد نظر یافت نشد یا حذف شده است.
+                </div>
+            {% endif %}
+
+            <div class="text-center mt-6">
+                <a href="/" class="btn-primary">
+                    <i class="fas fa-home ml-1"></i> بازگشت به صفحه اصلی
+                </a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>clikr &copy; ۱۴۰۴ - سرویس کوتاه‌کننده لینک</p>
+        </div>
+    </div>
+</body>
+</html>

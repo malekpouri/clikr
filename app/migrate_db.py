@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
-"""
-اسکریپت به‌روزرسانی دیتابیس برای اضافه کردن فیلد تاریخ انقضا
-این اسکریپت فقط یک بار و پس از به‌روزرسانی کدهای برنامه باید اجرا شود
-"""
 import os
 import sys
 import sqlite3
-from datetime import datetime, timedelta
 import logging
 
 # تنظیم لاگر
@@ -24,7 +19,7 @@ if project_root not in sys.path:
 
 
 def migrate_db():
-    """اضافه کردن ستون expires_at به دیتابیس موجود"""
+    """اضافه کردن ستون max_clicks به دیتابیس موجود"""
     # مسیر فایل دیتابیس
     db_path = os.path.join(os.path.dirname(__file__), 'clikr.db')
 
@@ -37,23 +32,18 @@ def migrate_db():
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
-        # بررسی وجود ستون expires_at
+        # بررسی وجود ستون max_clicks
         cursor.execute("PRAGMA table_info(urls)")
         columns = cursor.fetchall()
         column_names = [column[1] for column in columns]
 
-        if 'expires_at' not in column_names:
-            logger.info("اضافه کردن ستون expires_at به جدول urls...")
-            cursor.execute("ALTER TABLE urls ADD COLUMN expires_at TIMESTAMP")
-
-            # تنظیم تاریخ انقضا برای رکوردهای موجود (90 روز از تاریخ فعلی)
-            expiry_date = (datetime.now() + timedelta(days=90)).strftime('%Y-%m-%d %H:%M:%S')
-            cursor.execute("UPDATE urls SET expires_at = ? WHERE expires_at IS NULL", (expiry_date,))
-
+        if 'max_clicks' not in column_names:
+            logger.info("اضافه کردن ستون max_clicks به جدول urls...")
+            cursor.execute("ALTER TABLE urls ADD COLUMN max_clicks INTEGER")
             conn.commit()
-            logger.info(f"ستون expires_at با موفقیت اضافه شد. تاریخ انقضای پیش‌فرض: {expiry_date}")
+            logger.info("ستون max_clicks با موفقیت اضافه شد.")
         else:
-            logger.info("ستون expires_at از قبل وجود دارد.")
+            logger.info("ستون max_clicks از قبل وجود دارد.")
 
         # بستن اتصال
         conn.close()
@@ -65,7 +55,7 @@ def migrate_db():
 
 
 if __name__ == "__main__":
-    logger.info("شروع به‌روزرسانی دیتابیس...")
+    logger.info("شروع به‌روزرسانی دیتابیس برای محدودیت تعداد کلیک...")
     success = migrate_db()
 
     if success:
