@@ -2,6 +2,7 @@
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, Depends, Request, Form
+from fastapi.responses import StreamingResponse
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -79,11 +80,15 @@ async def show_stats_by_code(request: Request, code: str = None, db: Session = D
 @app.get("/stats/{short_code}", response_class=HTMLResponse)
 async def show_stats(request: Request, short_code: str, db: Session = Depends(get_db)):
     from .date_utils import gregorian_to_jalali, format_remaining_days
+    from .qr_generator import generate_qr_code
 
     db_url = services.get_url_info(db, short_code)
 
     url_info = None
     if db_url:
+        full_url = f"{request.base_url}{db_url.short_code}"
+        qr_code = generate_qr_code(full_url)
+
         # ایجاد دیکشنری با نام‌های فیلد مناسب برای تمپلیت
         url_info = {
             "url": db_url.original_url,
@@ -91,7 +96,9 @@ async def show_stats(request: Request, short_code: str, db: Session = Depends(ge
             "clicks": db_url.clicks,
             "max_clicks": db_url.max_clicks,
             "expires_at": gregorian_to_jalali(db_url.expires_at),
-            "remaining_time": format_remaining_days(db_url.expires_at)
+            "remaining_time": format_remaining_days(db_url.expires_at),
+            "qr_code": qr_code,
+            "full_url": full_url
         }
 
     return templates.TemplateResponse(
@@ -100,6 +107,32 @@ async def show_stats(request: Request, short_code: str, db: Session = Depends(ge
             "request": request,
             "url_info": url_info,
             "base_url": str(request.base_url)
+        }
+    )
+
+
+@app.get("/qr/{short_code}")
+async def download_qr_code(request: Request, short_code: str, db: Session = Depends(get_db)):
+    from .qr_generator import generate_qr_code_file
+
+    db_url = services.get_url_info(db, short_code)
+
+    if not db_url:
+        raise HTTPException(status_code=404, detail="URL not found")
+
+    # ساخت URL کامل
+    base_url = str(request.base_url).rstrip('/')
+    full_url = f"{base_url}/{short_code}"
+
+    # تولید کد QR
+    qr_file = generate_qr_code_file(full_url)
+
+    # استفاده از StreamingResponse به جای Response
+    return StreamingResponse(
+        qr_file,
+        media_type="image/png",
+        headers={
+            "Content-Disposition": f'attachment; filename="clikr-{short_code}.png"'
         }
     )
 
@@ -126,22 +159,43 @@ def create_short(url_data: URLCreate, db: Session = Depends(get_db)):
         clicks=db_url.clicks
     )
 
+
 # ارسال فرم برای ایجاد URL کوتاه (از طریق HTML)
 @app.post("/", response_class=HTMLResponse)
 async def create_short_from_form(
         request: Request,
         url: str = Form(...),
-        max_clicks: Optional[int] = Form(None),
+        max_clicks: Optional[str] = Form(None),  # تغییر از int به str
         db: Session = Depends(get_db)
 ):
     if not utils.is_valid_url(url):
         return templates.TemplateResponse(
             "index.html",
-            {"request": request, "error": "Invalid URL format"}
+            {"request": request, "error": "فرمت آدرس وارد شده صحیح نیست"}
         )
 
-    db_url = services.create_short_url(db, url, max_clicks=max_clicks)
+    # تبدیل max_clicks به عدد صحیح در صورتی که خالی نباشد
+    max_clicks_int = None
+    if max_clicks and max_clicks.strip():
+        try:
+            max_clicks_int = int(max_clicks)
+            if max_clicks_int <= 0:
+                return templates.TemplateResponse(
+                    "index.html",
+                    {"request": request, "error": "تعداد کلیک باید عدد مثبت باشد"}
+                )
+        except ValueError:
+            return templates.TemplateResponse(
+                "index.html",
+                {"request": request, "error": "تعداد کلیک باید یک عدد صحیح باشد"}
+            )
+
+    db_url = services.create_short_url(db, url, max_clicks=max_clicks_int)
     short_url = f"{request.base_url}{db_url.short_code}"
+
+    # تولید کد QR برای صفحه اصلی
+    from .qr_generator import generate_qr_code
+    qr_code = generate_qr_code(short_url)
 
     return templates.TemplateResponse(
         "index.html",
@@ -150,7 +204,8 @@ async def create_short_from_form(
             "short_url": short_url,
             "original_url": db_url.original_url,
             "short_code": db_url.short_code,
-            "max_clicks": db_url.max_clicks
+            "max_clicks": db_url.max_clicks,
+            "qr_code": qr_code
         }
     )
 
@@ -305,6 +360,7 @@ async def extend_expiry_form(
             "success": f"تاریخ انقضای لینک با موفقیت به {days} روز دیگر تمدید شد."
         }
     )
+
 
 # اگر به صورت مستقیم اجرا شود (نه با راه‌اندازی از بیرون)
 if __name__ == "__main__":
