@@ -12,24 +12,24 @@
     <link rel="manifest" href="{{ url_for('static', path='/favicon/site.webmanifest') }}">
 </head>
 <body>
-    <div class="container main-container">
-        <div class="text-center">
+    <div class="main-container">
+        <header class="text-center mb-6">
             <a href="/" class="text-decoration-none">
                 <div class="logo">clikr</div>
             </a>
             <p class="text-lg text-gray-600 mb-4">تمدید تاریخ انقضای لینک کوتاه</p>
-        </div>
+        </header>
 
-        <div class="url-form">
+        <section class="url-form">
             {% if success %}
-                <div class="bg-green-100 border-r-4 border-green-500 text-green-700 p-4 mb-4">
+                <div class="alert alert-success">
                     <i class="fas fa-check-circle ml-2"></i>
                     {{ success }}
                 </div>
             {% endif %}
 
             {% if error %}
-                <div class="bg-yellow-100 border-r-4 border-yellow-500 text-yellow-700 p-4 mb-4">
+                <div class="alert alert-error">
                     <i class="fas fa-exclamation-triangle ml-2"></i>
                     {{ error }}
                 </div>
@@ -57,24 +57,25 @@
                     <div class="url-display">{{ url_info.expires_at }}</div>
 
                     <h5 class="text-lg font-bold mb-2">زمان باقیمانده:</h5>
-                    <div class="url-display {% if 'منقضی' in url_info.remaining_time %}text-red-500{% endif %}">{{ url_info.remaining_time }}</div>
+                    <div class="url-display {% if 'منقضی' in url_info.remaining_time %}text-red-500{% endif %}">
+                        <i class="fas fa-clock ml-1"></i> {{ url_info.remaining_time }}
+                    </div>
                 </div>
 
                 <form method="post" action="/extend/{{ url_info.short_code }}" class="mt-5">
-                    <div class="mb-3">
-                        <label for="days" class="block text-gray-700 mb-2">مدت تمدید (روز):</label>
-                        <div class="input-group">
-                            <input type="number" class="w-full px-4 py-2 border rounded-md" id="days" name="days"
-                                  value="90" min="1" max="365" required>
-                            <button type="submit" class="btn-primary">
-                                <i class="fas fa-clock ml-1"></i> تمدید تاریخ انقضا
-                            </button>
-                        </div>
+                    <div class="mb-4">
+                        <label for="days" class="block text-gray-700 font-medium mb-2">مدت تمدید (روز):</label>
+                        <input type="number" class="w-full px-4 py-2 border rounded-md" id="days" name="days"
+                              value="90" min="1" max="365" required>
+                        <small class="text-gray-500">حداکثر ۳۶۵ روز</small>
                     </div>
+                    <button type="submit" class="btn-primary w-full">
+                        <i class="fas fa-clock ml-1"></i> تمدید تاریخ انقضا
+                    </button>
                 </form>
 
-                <div class="flex justify-between mt-4">
-                    <a href="/" class="btn-outline-primary">
+                <div class="flex flex-col sm:flex-row justify-between mt-4">
+                    <a href="/" class="btn-outline-primary mb-2 sm:mb-0">
                         <i class="fas fa-home ml-1"></i> بازگشت به صفحه اصلی
                     </a>
                     <a href="/stats/{{ url_info.short_code }}" class="btn-info">
@@ -82,21 +83,11 @@
                     </a>
                 </div>
             {% endif %}
-        </div>
+        </section>
 
-        <div class="footer">
+        <footer class="footer">
             <p>clikr &copy; ۱۴۰۴ - سرویس کوتاه‌کننده لینک</p>
-        </div>
+        </footer>
     </div>
-
-    <script>
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert('لینک کوتاه کپی شد!');
-            }).catch(err => {
-                console.error('خطا در کپی کردن: ', err);
-            });
-        }
-    </script>
 </body>
 </html>
