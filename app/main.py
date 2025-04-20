@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from datetime import datetime
+
 from fastapi import FastAPI, HTTPException, Depends, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -87,6 +89,7 @@ async def show_stats(request: Request, short_code: str, db: Session = Depends(ge
             "url": db_url.original_url,
             "short_code": db_url.short_code,
             "clicks": db_url.clicks,
+            "max_clicks": db_url.max_clicks,
             "expires_at": gregorian_to_jalali(db_url.expires_at),
             "remaining_time": format_remaining_days(db_url.expires_at)
         }
@@ -102,24 +105,33 @@ async def show_stats(request: Request, short_code: str, db: Session = Depends(ge
 
 
 # API برای ایجاد URL کوتاه
+class URLCreate(URLBase):
+    max_clicks: Optional[int] = None
+
+
 @app.post("/api/shorten", response_model=URLInfo)
-def create_short(url_data: URLBase, db: Session = Depends(get_db)):
+def create_short(url_data: URLCreate, db: Session = Depends(get_db)):
     if not utils.is_valid_url(url_data.url):
         raise HTTPException(status_code=400, detail="Invalid URL format")
 
-    db_url = services.create_short_url(db, url_data.url)
+    db_url = services.create_short_url(
+        db,
+        url_data.url,
+        expiry_days=90,
+        max_clicks=url_data.max_clicks
+    )
     return URLInfo(
         url=db_url.original_url,
         short_code=db_url.short_code,
         clicks=db_url.clicks
     )
 
-
 # ارسال فرم برای ایجاد URL کوتاه (از طریق HTML)
 @app.post("/", response_class=HTMLResponse)
 async def create_short_from_form(
         request: Request,
         url: str = Form(...),
+        max_clicks: Optional[int] = Form(None),
         db: Session = Depends(get_db)
 ):
     if not utils.is_valid_url(url):
@@ -128,7 +140,7 @@ async def create_short_from_form(
             {"request": request, "error": "Invalid URL format"}
         )
 
-    db_url = services.create_short_url(db, url)
+    db_url = services.create_short_url(db, url, max_clicks=max_clicks)
     short_url = f"{request.base_url}{db_url.short_code}"
 
     return templates.TemplateResponse(
@@ -137,19 +149,62 @@ async def create_short_from_form(
             "request": request,
             "short_url": short_url,
             "original_url": db_url.original_url,
-            "short_code": db_url.short_code
+            "short_code": db_url.short_code,
+            "max_clicks": db_url.max_clicks
         }
     )
 
 
 # هدایت به URL اصلی با استفاده از کد کوتاه
 @app.get("/{short_code}")
-def redirect_to_original(short_code: str, db: Session = Depends(get_db)):
-    original_url = services.get_original_url(db, short_code)
-    if not original_url:
-        raise HTTPException(status_code=404, detail="URL not found")
+def redirect_to_original(request: Request, short_code: str, db: Session = Depends(get_db)):
+    db_url = services.get_url_info(db, short_code)
 
-    return RedirectResponse(original_url)
+    # اگر لینک یافت نشد
+    if not db_url:
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error_title": "لینک یافت نشد",
+                "error_message": "لینک مورد نظر در سیستم وجود ندارد یا حذف شده است.",
+                "error_type": "not_found"
+            },
+            status_code=404
+        )
+
+    # بررسی تاریخ انقضا
+    if db_url.expires_at and db_url.expires_at < datetime.now():
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error_title": "لینک منقضی شده",
+                "error_message": "تاریخ انقضای این لینک به پایان رسیده است.",
+                "error_type": "expired"
+            },
+            status_code=410
+        )
+
+    # بررسی محدودیت تعداد کلیک
+    if db_url.max_clicks is not None and db_url.clicks >= db_url.max_clicks:
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error_title": "محدودیت تعداد کلیک",
+                "error_message": "این لینک به محدودیت تعداد کلیک رسیده و غیرفعال شده است.",
+                "error_type": "max_clicks"
+            },
+            status_code=410
+        )
+
+    # به‌روزرسانی زمان آخرین دسترسی و تعداد کلیک‌ها
+    db_url.last_accessed = datetime.now()
+    db_url.clicks += 1
+    db.commit()
+
+    return RedirectResponse(db_url.original_url)
 
 
 # API برای دریافت اطلاعات URL کوتاه

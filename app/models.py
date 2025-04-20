@@ -14,6 +14,7 @@ class URL(Base):
     last_accessed = Column(DateTime(timezone=True), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=True)  # تاریخ انقضا
     clicks = Column(Integer, default=0)
+    max_clicks = Column(Integer, nullable=True)  # حداکثر تعداد کلیک مجاز
     is_active = Column(Boolean, default=True)
 
     @classmethod
