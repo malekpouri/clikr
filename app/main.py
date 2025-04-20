@@ -84,7 +84,8 @@ async def show_stats(request: Request, short_code: str, db: Session = Depends(ge
         url_info = {
             "url": db_url.original_url,
             "short_code": db_url.short_code,
-            "clicks": db_url.clicks
+            "clicks": db_url.clicks,
+            "expires_at": db_url.expires_at.strftime("%Y-%m-%d %H:%M:%S") if db_url.expires_at else None
         }
 
     return templates.TemplateResponse(
@@ -161,6 +162,88 @@ def get_url_info(short_code: str, db: Session = Depends(get_db)):
         clicks=db_url.clicks
     )
 
+
+# مدل برای درخواست تمدید
+class ExtendExpiryRequest(BaseModel):
+    days: int = 90
+
+
+# API برای تمدید تاریخ انقضای لینک
+@app.post("/api/extend/{short_code}", response_model=Optional[URLInfo])
+def extend_expiry(short_code: str, request_data: ExtendExpiryRequest, db: Session = Depends(get_db)):
+    db_url = services.extend_url_expiry(db, short_code, request_data.days)
+    if not db_url:
+        raise HTTPException(status_code=404, detail="URL not found")
+
+    return URLInfo(
+        url=db_url.original_url,
+        short_code=db_url.short_code,
+        clicks=db_url.clicks
+    )
+
+
+# صفحه تمدید تاریخ انقضا
+@app.get("/extend/{short_code}", response_class=HTMLResponse)
+async def extend_expiry_page(request: Request, short_code: str, db: Session = Depends(get_db)):
+    db_url = services.get_url_info(db, short_code)
+
+    url_info = None
+    if db_url:
+        # ایجاد دیکشنری با نام‌های فیلد مناسب برای تمپلیت
+        url_info = {
+            "url": db_url.original_url,
+            "short_code": db_url.short_code,
+            "clicks": db_url.clicks,
+            "expires_at": db_url.expires_at.strftime("%Y-%m-%d %H:%M:%S") if db_url.expires_at else "بدون تاریخ انقضا"
+        }
+
+    return templates.TemplateResponse(
+        "extend.html",
+        {
+            "request": request,
+            "url_info": url_info,
+            "base_url": str(request.base_url)
+        }
+    )
+
+
+# تمدید تاریخ انقضا از طریق فرم
+@app.post("/extend/{short_code}", response_class=HTMLResponse)
+async def extend_expiry_form(
+        request: Request,
+        short_code: str,
+        days: int = Form(90),
+        db: Session = Depends(get_db)
+):
+    db_url = services.extend_url_expiry(db, short_code, days)
+
+    if not db_url:
+        return templates.TemplateResponse(
+            "extend.html",
+            {
+                "request": request,
+                "url_info": None,
+                "base_url": str(request.base_url),
+                "error": "لینک مورد نظر یافت نشد."
+            }
+        )
+
+    url_info = {
+        "url": db_url.original_url,
+        "short_code": db_url.short_code,
+        "clicks": db_url.clicks,
+        "expires_at": db_url.expires_at.strftime("%Y-%m-%d %H:%M:%S") if db_url.expires_at else "بدون تاریخ انقضا"
+    }
+
+    return templates.TemplateResponse(
+        "extend.html",
+        {
+            "request": request,
+            "url_info": url_info,
+            "base_url": str(request.base_url),
+            "success": f"تاریخ انقضای لینک با موفقیت به {days} روز دیگر تمدید شد."
+        }
+    )
 
 # اگر به صورت مستقیم اجرا شود (نه با راه‌اندازی از بیرون)
 if __name__ == "__main__":
