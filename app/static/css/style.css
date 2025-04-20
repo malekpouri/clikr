@@ -1,0 +1,177 @@
+/* استایل‌های سفارشی برای clikr */
+
+@import url('https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+@font-face {
+    font-family: 'Vazir';
+    src: url('https://cdn.jsdelivr.net/npm/vazir-font@30.1.0/dist/Vazir-Black.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    font-family: 'Vazir', Tahoma, Arial, sans-serif;
+    background-color: #f9fafb;
+}
+
+.rtl {
+    direction: rtl;
+}
+
+.main-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.logo {
+    font-size: 3rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, #3f51b5, #1a237e);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
+}
+
+.url-form {
+    background-color: white;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+.result-box {
+    background-color: #e8eaf6;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    border-left: 5px solid #3f51b5;
+    transition: all 0.3s ease;
+}
+
+.result-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(63, 81, 181, 0.15);
+}
+
+.short-url {
+    font-size: 1.2rem;
+    font-weight: bold;
+    word-break: break-all;
+}
+
+.btn-primary {
+    background-color: #3f51b5;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    background-color: #1a237e;
+}
+
+.btn-outline-primary {
+    background-color: transparent;
+    color: #3f51b5;
+    border: 1px solid #3f51b5;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-primary:hover {
+    background-color: #3f51b5;
+    color: white;
+}
+
+.btn-info {
+    background-color: #0ea5e9;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-info:hover {
+    background-color: #0284c7;
+}
+
+.copy-btn {
+    background-color: #3f51b5;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+    background-color: #1a237e;
+}
+
+.footer {
+    margin-top: 3rem;
+    color: #6c757d;
+    text-align: center;
+}
+
+.click-count {
+    font-size: 4rem;
+    font-weight: bold;
+    color: #3f51b5;
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.url-display {
+    word-break: break-all;
+    background-color: #e8eaf6;
+    padding: 1rem;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+}
+
+/* استایل‌های پاسخگو */
+@media (max-width: 768px) {
+    .logo {
+        font-size: 2.5rem;
+    }
+
+    .url-form {
+        padding: 1.5rem;
+    }
+}
+
+/* ایجاد کمی فاصله بین دکمه و فیلد در نمای موبایل */
+@media (max-width: 576px) {
+    .input-group {
+        flex-direction: column;
+    }
+
+    .input-group input {
+        border-radius: 0.25rem !important;
+        margin-bottom: 0.5rem;
+    }
+
+    .input-group button {
+        border-radius: 0.25rem !important;
+        width: 100%;
+    }
+}

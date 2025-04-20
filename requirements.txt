@@ -1,0 +1,8 @@
+fastapi~=0.115.12
+uvicorn~=0.34.2
+sqlalchemy~=2.0.40
+pydantic~=2.11.3
+python-nanoid
+aiosqlite
+jinja2
+python-multipart

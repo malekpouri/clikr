@@ -1,10 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" class="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>clikr - کوتاه کننده لینک</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', path='/favicon/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', path='/favicon/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', path='/favicon/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ url_for('static', path='/favicon/site.webmanifest') }}">
 </head>
 <body>
+    <div class="container main-container">
+        <div class="text-center">
+            <div class="logo">clikr</div>
+            <p class="text-lg text-gray-600 mb-4">لینک‌های طولانی را کوتاه کنید و به راحتی به اشتراک بگذارید</p>
+        </div>
 
+        <div class="url-form">
+            <form method="post" action="/">
+                <div class="mb-3">
+                    <label for="url" class="block text-gray-700 mb-2">لینک اصلی را وارد کنید:</label>
+                    <div class="input-group">
+                        <input type="text" class="w-full px-4 py-2 border rounded-md" id="url" name="url"
+                               placeholder="https://example.com/your-long-url" required>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-cut ml-1"></i> کوتاه کن!
+                        </button>
+                    </div>
+                    {% if error %}
+                    <div class="text-red-500 mt-2">{{ error }}</div>
+                    {% endif %}
+                </div>
+            </form>
+
+            {% if short_url %}
+            <div class="result-box">
+                <h5 class="text-lg font-bold mb-3">لینک کوتاه شما آماده است:</h5>
+                <div class="flex justify-between items-center">
+                    <a href="{{ short_url }}" class="short-url" target="_blank">{{ short_url }}</a>
+                    <button class="copy-btn" onclick="copyToClipboard('{{ short_url }}')">
+                        <i class="fas fa-copy ml-1"></i> کپی
+                    </button>
+                </div>
+                <small class="text-gray-500 block mt-2">لینک اصلی: {{ original_url }}</small>
+                <div class="text-center mt-3">
+                    <a href="/stats/{{ short_code }}" class="btn-outline-primary">
+                        <i class="fas fa-chart-bar ml-1"></i> مشاهده آمار کلیک‌ها
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- بخش جستجوی آمار لینک -->
+        <div class="url-form mt-4">
+            <h4 class="text-center text-xl font-bold mb-3">مشاهده آمار لینک کوتاه</h4>
+            <form method="get" action="/stats">
+                <div class="mb-3">
+                    <label for="code" class="block text-gray-700 mb-2">کد کوتاه را وارد کنید:</label>
+                    <div class="input-group">
+                        <input type="text" class="w-full px-4 py-2 border rounded-md" id="code" name="code"
+                               placeholder="Ab3X9z" required>
+                        <button type="submit" class="btn-info">
+                            <i class="fas fa-search ml-1"></i> مشاهده آمار
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+            <div class="text-center p-3 border rounded-md">
+                <i class="fas fa-rocket text-3xl text-blue-600 mb-2"></i>
+                <h5 class="text-lg font-bold">سریع و آسان</h5>
+                <p>با یک کلیک لینک خود را کوتاه کنید</p>
+            </div>
+            <div class="text-center p-3 border rounded-md">
+                <i class="fas fa-chart-line text-3xl text-blue-600 mb-2"></i>
+                <h5 class="text-lg font-bold">آمار کلیک‌ها</h5>
+                <p>تعداد کلیک‌های هر لینک را مشاهده کنید</p>
+            </div>
+            <div class="text-center p-3 border rounded-md">
+                <i class="fas fa-lock text-3xl text-blue-600 mb-2"></i>
+                <h5 class="text-lg font-bold">امن و مطمئن</h5>
+                <p>بدون نیاز به ثبت نام، ساده و کاربردی</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>clikr &copy; ۱۴۰۴ - سرویس کوتاه‌کننده لینک</p>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('لینک کوتاه کپی شد!');
+            }).catch(err => {
+                console.error('خطا در کپی کردن: ', err);
+            });
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  clikr:
+    build: .
+    container_name: clikr-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app
+      - ./clikr.db:/app/clikr.db
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 100M
+    environment:
+      - TZ=Asia/Tehran
