@@ -55,6 +55,9 @@
 
                     <h5 class="text-lg font-bold mb-2">تاریخ انقضا:</h5>
                     <div class="url-display">{{ url_info.expires_at }}</div>
+
+                    <h5 class="text-lg font-bold mb-2">زمان باقیمانده:</h5>
+                    <div class="url-display {% if 'منقضی' in url_info.remaining_time %}text-red-500{% endif %}">{{ url_info.remaining_time }}</div>
                 </div>
 
                 <form method="post" action="/extend/{{ url_info.short_code }}" class="mt-5">
