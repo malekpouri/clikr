@@ -46,6 +46,20 @@
             <h5 class="text-lg font-bold mb-2">کد کوتاه:</h5>
             <div class="url-display">{{ url_info.short_code }}</div>
 
+            <div class="mt-6 text-center">
+                <h5 class="text-lg font-bold mb-4">کد QR لینک شما</h5>
+                <div class="inline-block p-4 bg-white rounded-lg shadow-md">
+                    <img src="{{ url_info.qr_code }}" alt="QR Code" class="mx-auto" width="200" height="200">
+                </div>
+                <div class="mt-4">
+                    <a href="/qr/{{ url_info.short_code }}" class="btn-primary">
+                        <i class="fas fa-download ml-1"></i> دانلود کد QR
+                    </a>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">
+                    با اسکن این کد QR، کاربران به راحتی می‌توانند به لینک شما دسترسی پیدا کنند
+                </p>
+            </div>
             <h5 class="text-lg font-bold mb-2">لینک اصلی:</h5>
             <div class="url-display">{{ url_info.url }}</div>
 
