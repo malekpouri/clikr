@@ -45,11 +45,20 @@ app.mount("/static", StaticFiles(directory=static_path), name="static")
 # مدل پایتونیک برای API
 class URLBase(BaseModel):
     url: str
-
+# API برای ایجاد URL کوتاه
+class URLCreate(URLBase):
+    max_clicks: Optional[int] = None
 
 class URLInfo(URLBase):
     short_code: str
     clicks: int
+    max_clicks: Optional[int] = None
+    expires_at: Optional[datetime] = None
+
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.strftime("%Y-%m-%d %H:%M:%S") if v else None
+        }
 
 
 # صفحه اصلی
@@ -110,6 +119,16 @@ async def show_stats(request: Request, short_code: str, db: Session = Depends(ge
         }
     )
 
+@app.get("/api/docs", response_class=HTMLResponse)
+async def api_docs(request: Request):
+    """صفحه مستندات API"""
+    return templates.TemplateResponse(
+        "api_docs.html",
+        {
+            "request": request,
+            "base_url": str(request.base_url)
+        }
+    )
 
 @app.get("/qr/{short_code}")
 async def download_qr_code(request: Request, short_code: str, db: Session = Depends(get_db)):
@@ -137,9 +156,7 @@ async def download_qr_code(request: Request, short_code: str, db: Session = Depe
     )
 
 
-# API برای ایجاد URL کوتاه
-class URLCreate(URLBase):
-    max_clicks: Optional[int] = None
+
 
 
 @app.post("/api/shorten", response_model=URLInfo)
@@ -156,7 +173,9 @@ def create_short(url_data: URLCreate, db: Session = Depends(get_db)):
     return URLInfo(
         url=db_url.original_url,
         short_code=db_url.short_code,
-        clicks=db_url.clicks
+        clicks=db_url.clicks,
+        max_clicks=db_url.max_clicks,
+        expires_at=db_url.expires_at
     )
 
 
@@ -272,7 +291,9 @@ def get_url_info(short_code: str, db: Session = Depends(get_db)):
     return URLInfo(
         url=db_url.original_url,
         short_code=db_url.short_code,
-        clicks=db_url.clicks
+        clicks=db_url.clicks,
+        max_clicks=db_url.max_clicks,
+        expires_at=db_url.expires_at
     )
 
 

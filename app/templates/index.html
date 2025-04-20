@@ -12,166 +12,170 @@
     <link rel="manifest" href="{{ url_for('static', path='/favicon/site.webmanifest') }}">
 </head>
 <body>
-    <div class="main-container">
-        <header class="text-center mb-6">
-            <div class="logo">clikr</div>
-            <p class="text-lg text-gray-600">لینک‌های طولانی را کوتاه کنید و به راحتی به اشتراک بگذارید</p>
-        </header>
+<div class="main-container">
+    <header class="text-center mb-6">
+        <div class="logo">clikr</div>
+        <p class="text-lg text-gray-600">لینک‌های طولانی را کوتاه کنید و به راحتی به اشتراک بگذارید</p>
+    </header>
 
-        <section class="url-form">
-            <form method="post" action="/" id="shortenForm">
-                <div class="mb-4">
-                    <label for="url" class="block text-gray-700 font-medium mb-2">لینک اصلی را وارد کنید:</label>
-                    <input type="text" class="w-full px-4 py-2 border rounded-md" id="url" name="url"
-                           placeholder="https://example.com/your-long-url" required>
-                </div>
-                <div class="mb-4">
-                    <label for="max_clicks" class="block text-gray-700 font-medium mb-2">محدودیت تعداد کلیک (اختیاری):</label>
-                    <input type="number" class="w-full px-4 py-2 border rounded-md" id="max_clicks" name="max_clicks"
-                           placeholder="بدون محدودیت" min="1">
-                    <small class="text-gray-500">اگر خالی بماند، محدودیتی اعمال نمی‌شود</small>
-                </div>
+    <section class="url-form">
+        <form method="post" action="/" id="shortenForm">
+            <div class="mb-4">
+                <label for="url" class="block text-gray-700 font-medium mb-2">لینک اصلی را وارد کنید:</label>
+                <input type="text" class="w-full px-4 py-2 border rounded-md" id="url" name="url"
+                       placeholder="https://example.com/your-long-url" required>
+            </div>
+            <div class="mb-4">
+                <label for="max_clicks" class="block text-gray-700 font-medium mb-2">محدودیت تعداد کلیک
+                    (اختیاری):</label>
+                <input type="number" class="w-full px-4 py-2 border rounded-md" id="max_clicks" name="max_clicks"
+                       placeholder="بدون محدودیت" min="1">
+                <small class="text-gray-500">اگر خالی بماند، محدودیتی اعمال نمی‌شود</small>
+            </div>
 
-                {% if error %}
-                <div class="alert alert-error">
-                    <i class="fas fa-exclamation-circle ml-1"></i>
-                    {{ error }}
-                </div>
-                {% endif %}
+            {% if error %}
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle ml-1"></i>
+                {{ error }}
+            </div>
+            {% endif %}
 
-                <button type="submit" class="btn-primary w-full">
-                    <i class="fas fa-cut ml-1"></i> کوتاه کن!
+            <button type="submit" class="btn-primary w-full">
+                <i class="fas fa-cut ml-1"></i> کوتاه کن!
+            </button>
+        </form>
+
+        {% if short_url %}
+        <div class="result-box">
+            <h5 class="text-lg font-bold mb-3">لینک کوتاه شما آماده است:</h5>
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-2">
+                <a href="{{ short_url }}" class="short-url mb-2 sm:mb-0" target="_blank">{{ short_url }}</a>
+                <button class="copy-btn" onclick="copyToClipboard('{{ short_url }}')">
+                    <i class="fas fa-copy ml-1"></i> کپی
                 </button>
-            </form>
+            </div>
+            <small class="text-gray-500 block mt-2">لینک اصلی: {{ original_url }}</small>
 
-            {% if short_url %}
-            <div class="result-box">
-                <h5 class="text-lg font-bold mb-3">لینک کوتاه شما آماده است:</h5>
-                <div class="flex flex-col sm:flex-row justify-between items-center mb-2">
-                    <a href="{{ short_url }}" class="short-url mb-2 sm:mb-0" target="_blank">{{ short_url }}</a>
-                    <button class="copy-btn" onclick="copyToClipboard('{{ short_url }}')">
-                        <i class="fas fa-copy ml-1"></i> کپی
-                    </button>
+            {% if max_clicks %}
+            <div class="mt-3">
+                <small class="text-gray-500 block">محدودیت کلیک: {{ max_clicks }} بازدید</small>
+            </div>
+            {% endif %}
+
+            <!-- نمایش کد QR -->
+            <div class="mt-4 text-center">
+                <h6 class="text-sm font-bold mb-2">کد QR لینک شما:</h6>
+                <div class="qr-container inline-block">
+                    <img src="{{ qr_code }}" alt="QR Code" class="mx-auto" width="150" height="150">
                 </div>
-                <small class="text-gray-500 block mt-2">لینک اصلی: {{ original_url }}</small>
-
-                {% if max_clicks %}
-                <div class="mt-3">
-                    <small class="text-gray-500 block">محدودیت کلیک: {{ max_clicks }} بازدید</small>
-                </div>
-                {% endif %}
-
-                <!-- نمایش کد QR -->
-                <div class="mt-4 text-center">
-                    <h6 class="text-sm font-bold mb-2">کد QR لینک شما:</h6>
-                    <div class="qr-container inline-block">
-                        <img src="{{ qr_code }}" alt="QR Code" class="mx-auto" width="150" height="150">
-                    </div>
-                    <div class="mt-2">
-                        <a href="/qr/{{ short_code }}" class="btn-outline-primary text-sm px-3 py-1">
-                            <i class="fas fa-download ml-1"></i> دانلود کد QR
-                        </a>
-                    </div>
-                </div>
-
-                <div class="text-center mt-4">
-                    <a href="/stats/{{ short_code }}" class="btn-outline-primary">
-                        <i class="fas fa-chart-bar ml-1"></i> مشاهده آمار کلیک‌ها
+                <div class="mt-2">
+                    <a href="/qr/{{ short_code }}" class="btn-outline-primary text-sm px-3 py-1">
+                        <i class="fas fa-download ml-1"></i> دانلود کد QR
                     </a>
                 </div>
             </div>
-            {% endif %}
-        </section>
 
-        <!-- بخش جستجوی آمار لینک -->
-        <section class="url-form">
-            <h4 class="text-xl font-bold text-center mb-4">مشاهده آمار لینک کوتاه</h4>
-            <form method="get" action="/stats">
-                <div class="mb-3">
-                    <label for="code" class="block text-gray-700 font-medium mb-2">کد کوتاه را وارد کنید:</label>
-                    <div class="input-group">
-                        <input type="text" class="w-full px-4 py-2 border rounded-md" id="code" name="code"
-                               placeholder="Ab3X9z" required>
-                        <button type="submit" class="btn-info">
-                            <i class="fas fa-search ml-1"></i> مشاهده آمار
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </section>
+            <div class="text-center mt-4">
+                <a href="/stats/{{ short_code }}" class="btn-outline-primary">
+                    <i class="fas fa-chart-bar ml-1"></i> مشاهده آمار کلیک‌ها
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </section>
 
-        <section class="mt-8">
-            <h3 class="text-xl font-bold text-center mb-4">ویژگی‌های clikr</h3>
-            <div class="grid-cols-1 sm:grid-cols-2 md:grid-cols-3 grid gap-4">
-                <div class="p-4 border rounded-md feature-card text-center">
-                    <i class="fas fa-rocket text-3xl text-blue-600 mb-2"></i>
-                    <h5 class="text-lg font-bold">سریع و آسان</h5>
-                    <p>با یک کلیک لینک خود را کوتاه کنید</p>
-                </div>
-                <div class="p-4 border rounded-md feature-card text-center">
-                    <i class="fas fa-chart-line text-3xl text-blue-600 mb-2"></i>
-                    <h5 class="text-lg font-bold">آمار کلیک‌ها</h5>
-                    <p>تعداد کلیک‌های هر لینک را مشاهده کنید</p>
-                </div>
-                <div class="p-4 border rounded-md feature-card text-center">
-                    <i class="fas fa-lock text-3xl text-blue-600 mb-2"></i>
-                    <h5 class="text-lg font-bold">امن و مطمئن</h5>
-                    <p>بدون نیاز به ثبت نام، ساده و کاربردی</p>
-                </div>
-                <div class="p-4 border rounded-md feature-card text-center">
-                    <i class="fas fa-qrcode text-3xl text-blue-600 mb-2"></i>
-                    <h5 class="text-lg font-bold">کد QR</h5>
-                    <p>برای هر لینک کوتاه یک کد QR دریافت کنید</p>
-                </div>
-                <div class="p-4 border rounded-md feature-card text-center">
-                    <i class="fas fa-mobile-alt text-3xl text-blue-600 mb-2"></i>
-                    <h5 class="text-lg font-bold">طراحی واکنشگرا</h5>
-                    <p>مناسب برای موبایل، تبلت و دسکتاپ</p>
-                </div>
-                <div class="p-4 border rounded-md feature-card text-center">
-                    <i class="fas fa-clock text-3xl text-blue-600 mb-2"></i>
-                    <h5 class="text-lg font-bold">تاریخ انقضا</h5>
-                    <p>تعیین مدت زمان اعتبار لینک‌ها</p>
+    <!-- بخش جستجوی آمار لینک -->
+    <section class="url-form">
+        <h4 class="text-xl font-bold text-center mb-4">مشاهده آمار لینک کوتاه</h4>
+        <form method="get" action="/stats">
+            <div class="mb-3">
+                <label for="code" class="block text-gray-700 font-medium mb-2">کد کوتاه را وارد کنید:</label>
+                <div class="input-group">
+                    <input type="text" class="w-full px-4 py-2 border rounded-md" id="code" name="code"
+                           placeholder="Ab3X9z" required>
+                    <button type="submit" class="btn-info">
+                        <i class="fas fa-search ml-1"></i> مشاهده آمار
+                    </button>
                 </div>
             </div>
-        </section>
+        </form>
+    </section>
 
-        <footer class="footer">
-            <p>clikr &copy; ۱۴۰۴ - سرویس کوتاه‌کننده لینک</p>
-        </footer>
-    </div>
+    <section class="mt-8">
+        <h3 class="text-xl font-bold text-center mb-4">ویژگی‌های clikr</h3>
+        <div class="grid-cols-1 sm:grid-cols-2 md:grid-cols-3 grid gap-4">
+            <div class="p-4 border rounded-md feature-card text-center">
+                <i class="fas fa-rocket text-3xl text-blue-600 mb-2"></i>
+                <h5 class="text-lg font-bold">سریع و آسان</h5>
+                <p>با یک کلیک لینک خود را کوتاه کنید</p>
+            </div>
+            <div class="p-4 border rounded-md feature-card text-center">
+                <i class="fas fa-chart-line text-3xl text-blue-600 mb-2"></i>
+                <h5 class="text-lg font-bold">آمار کلیک‌ها</h5>
+                <p>تعداد کلیک‌های هر لینک را مشاهده کنید</p>
+            </div>
+            <div class="p-4 border rounded-md feature-card text-center">
+                <i class="fas fa-lock text-3xl text-blue-600 mb-2"></i>
+                <h5 class="text-lg font-bold">امن و مطمئن</h5>
+                <p>بدون نیاز به ثبت نام، ساده و کاربردی</p>
+            </div>
+            <div class="p-4 border rounded-md feature-card text-center">
+                <i class="fas fa-qrcode text-3xl text-blue-600 mb-2"></i>
+                <h5 class="text-lg font-bold">کد QR</h5>
+                <p>برای هر لینک کوتاه یک کد QR دریافت کنید</p>
+            </div>
+            <div class="p-4 border rounded-md feature-card text-center">
+                <i class="fas fa-mobile-alt text-3xl text-blue-600 mb-2"></i>
+                <h5 class="text-lg font-bold">طراحی واکنشگرا</h5>
+                <p>مناسب برای موبایل، تبلت و دسکتاپ</p>
+            </div>
+            <div class="p-4 border rounded-md feature-card text-center">
+                <i class="fas fa-clock text-3xl text-blue-600 mb-2"></i>
+                <h5 class="text-lg font-bold">تاریخ انقضا</h5>
+                <p>تعیین مدت زمان اعتبار لینک‌ها</p>
+            </div>
+        </div>
+    </section>
 
-    <script>
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
+    <footer class="footer">
+        <p>clikr &copy; ۱۴۰۴ - سرویس کوتاه‌کننده لینک</p>
+        <a href="/api/docs" class="btn-outline-primary">
+            <i class="fas fa-book ml-1"></i> مستندات API
+        </a>
+    </footer>
+</div>
+
+<script>
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('لینک کوتاه کپی شد!');
+        }).catch(err => {
+            console.error('خطا در کپی کردن: ', err);
+
+            // روش جایگزین برای مرورگرهای قدیمی
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
                 alert('لینک کوتاه کپی شد!');
-            }).catch(err => {
+            } catch (err) {
                 console.error('خطا در کپی کردن: ', err);
+                alert('امکان کپی کردن وجود ندارد. لطفاً به صورت دستی کپی کنید.');
+            }
 
-                // روش جایگزین برای مرورگرهای قدیمی
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                textArea.style.position = 'fixed';
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
+            document.body.removeChild(textArea);
+        });
+    }
 
-                try {
-                    document.execCommand('copy');
-                    alert('لینک کوتاه کپی شد!');
-                } catch (err) {
-                    console.error('خطا در کپی کردن: ', err);
-                    alert('امکان کپی کردن وجود ندارد. لطفاً به صورت دستی کپی کنید.');
-                }
-
-                document.body.removeChild(textArea);
-            });
-        }
-
-        // جلوگیری از ارسال مجدد فرم با رفرش صفحه
-        if (window.history.replaceState) {
-            window.history.replaceState(null, null, window.location.href);
-        }
-    </script>
+    // جلوگیری از ارسال مجدد فرم با رفرش صفحه
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+</script>
 </body>
 </html>
