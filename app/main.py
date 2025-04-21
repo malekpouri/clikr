@@ -281,10 +281,28 @@ def redirect_to_original(request: Request, short_code: str, db: Session = Depend
 
     user_agent = request.headers.get("user-agent", "")
     client_host = request.client.host if request.client else None
-    services.log_click(db, db_url.id, user_agent, client_host)
+    referrer = request.headers.get("referer", None)  # دریافت ارجاع دهنده
+
+    services.log_click(db, db_url.id, user_agent, client_host, referrer)
 
     return RedirectResponse(db_url.original_url)
 
+
+@app.get("/api/geo/{short_code}")
+def get_geo_stats_api(short_code: str, db: Session = Depends(get_db)):
+    """API برای دریافت آمار جغرافیایی کلیک‌ها"""
+    db_url = services.get_url_info(db, short_code)
+    if not db_url:
+        raise HTTPException(status_code=404, detail="URL not found")
+
+    stats = services.get_geo_stats(db, db_url.id)
+
+    # تبدیل به فرمت مناسب جیسون
+    result = {}
+    for key, values in stats.items():
+        result[key] = [{"name": item[0] or "نامشخص", "count": item[1]} for item in values]
+
+    return result
 
 @app.get("/api/stats/{short_code}/{period}")
 def get_click_stats_api(short_code: str, period: str, db: Session = Depends(get_db)):

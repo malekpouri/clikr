@@ -29,7 +29,6 @@ class URL(Base):
         )
 
 
-
 class ClickLog(Base):
     __tablename__ = "click_logs"
 
@@ -38,6 +37,14 @@ class ClickLog(Base):
     clicked_at = Column(DateTime(timezone=True), default=func.now())
     user_agent = Column(String, nullable=True)
     ip_address = Column(String, nullable=True)
+
+    # اطلاعات جغرافیایی
+    country = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    device_type = Column(String, nullable=True)
+    browser = Column(String, nullable=True)
+    os = Column(String, nullable=True)
+    referrer = Column(String, nullable=True)
 
     # رابطه با مدل URL
     url = relationship("URL", back_populates="click_logs")

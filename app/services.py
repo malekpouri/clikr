@@ -77,18 +77,145 @@ def get_original_url(db: Session, short_code: str) -> str:
     return db_url.original_url
 
 
-def log_click(db: Session, url_id: int, user_agent: str = None, ip_address: str = None) -> models.ClickLog:
-    """ثبت یک بازدید جدید در تاریخچه"""
+def log_click(db: Session, url_id: int, user_agent: str = None, ip_address: str = None,
+              referrer: str = None) -> models.ClickLog:
+    """ثبت یک بازدید جدید در تاریخچه با اطلاعات جغرافیایی"""
+    from .geo_utils import get_geo_info, parse_user_agent, parse_referrer
+
+    # استخراج اطلاعات جغرافیایی
+    geo_info = get_geo_info(ip_address) if ip_address else {'country': None, 'city': None}
+
+    # استخراج اطلاعات دستگاه
+    device_info = parse_user_agent(user_agent) if user_agent else {'device_type': None, 'browser': None, 'os': None}
+
+    # پردازش ارجاع دهنده
+    processed_referrer = parse_referrer(referrer)
+
     click_log = models.ClickLog(
         url_id=url_id,
         user_agent=user_agent,
-        ip_address=ip_address
+        ip_address=ip_address,
+        country=geo_info['country'],
+        city=geo_info['city'],
+        device_type=device_info['device_type'],
+        browser=device_info['browser'],
+        os=device_info['os'],
+        referrer=processed_referrer
     )
+
     db.add(click_log)
     db.commit()
     db.refresh(click_log)
     return click_log
 
+
+def get_geo_stats(db: Session, url_id: int) -> dict:
+    """دریافت آمار جغرافیایی کلیک‌ها"""
+    from sqlalchemy import func, desc
+
+    # آمار کشورها
+    country_stats = (
+        db.query(
+            models.ClickLog.country,
+            func.count().label('count')
+        )
+        .filter(
+            models.ClickLog.url_id == url_id,
+            models.ClickLog.country.isnot(None)
+        )
+        .group_by(models.ClickLog.country)
+        .order_by(desc('count'))
+        .limit(10)
+        .all()
+    )
+
+    # آمار شهرها
+    city_stats = (
+        db.query(
+            models.ClickLog.city,
+            func.count().label('count')
+        )
+        .filter(
+            models.ClickLog.url_id == url_id,
+            models.ClickLog.city.isnot(None)
+        )
+        .group_by(models.ClickLog.city)
+        .order_by(desc('count'))
+        .limit(10)
+        .all()
+    )
+
+    # آمار دستگاه‌ها
+    device_stats = (
+        db.query(
+            models.ClickLog.device_type,
+            func.count().label('count')
+        )
+        .filter(
+            models.ClickLog.url_id == url_id,
+            models.ClickLog.device_type.isnot(None)
+        )
+        .group_by(models.ClickLog.device_type)
+        .order_by(desc('count'))
+        .all()
+    )
+
+    # آمار مرورگرها
+    browser_stats = (
+        db.query(
+            models.ClickLog.browser,
+            func.count().label('count')
+        )
+        .filter(
+            models.ClickLog.url_id == url_id,
+            models.ClickLog.browser.isnot(None)
+        )
+        .group_by(models.ClickLog.browser)
+        .order_by(desc('count'))
+        .limit(10)
+        .all()
+    )
+
+    # آمار سیستم‌عامل‌ها
+    os_stats = (
+        db.query(
+            models.ClickLog.os,
+            func.count().label('count')
+        )
+        .filter(
+            models.ClickLog.url_id == url_id,
+            models.ClickLog.os.isnot(None)
+        )
+        .group_by(models.ClickLog.os)
+        .order_by(desc('count'))
+        .limit(10)
+        .all()
+    )
+
+    # آمار ارجاع دهنده‌ها
+    referrer_stats = (
+        db.query(
+            models.ClickLog.referrer,
+            func.count().label('count')
+        )
+        .filter(
+            models.ClickLog.url_id == url_id,
+            models.ClickLog.referrer.isnot(None)
+        )
+        .group_by(models.ClickLog.referrer)
+        .order_by(desc('count'))
+        .limit(10)
+        .all()
+    )
+
+    return {
+        'countries': country_stats,
+        'cities': city_stats,
+        'devices': device_stats,
+        'browsers': browser_stats,
+        'os': os_stats,
+        'referrers': referrer_stats
+    }
 
 def get_click_stats(db: Session, url_id: int, period: str = 'day') -> dict:
     """دریافت آمار کلیک‌ها بر اساس دوره زمانی
