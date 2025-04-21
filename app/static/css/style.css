@@ -381,3 +381,18 @@ img {
     background-color: var(--primary-color);
     transition: width 0.3s ease;
 }
+
+
+.active-tab {
+    background-color: #3f51b5;
+    color: white;
+}
+.inline-flex button {
+    transition: all 0.2s ease;
+}
+.inline-flex button:hover {
+    background-color: #e2e8f0;
+}
+.inline-flex button.active-tab:hover {
+    background-color: #3949ab;
+}

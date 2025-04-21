@@ -107,7 +107,8 @@ async def show_stats(request: Request, short_code: str, db: Session = Depends(ge
             "expires_at": gregorian_to_jalali(db_url.expires_at),
             "remaining_time": format_remaining_days(db_url.expires_at),
             "qr_code": qr_code,
-            "full_url": full_url
+            "full_url": full_url,
+            "id": db_url.id
         }
 
     return templates.TemplateResponse(
@@ -278,7 +279,28 @@ def redirect_to_original(request: Request, short_code: str, db: Session = Depend
     db_url.clicks += 1
     db.commit()
 
+    user_agent = request.headers.get("user-agent", "")
+    client_host = request.client.host if request.client else None
+    services.log_click(db, db_url.id, user_agent, client_host)
+
     return RedirectResponse(db_url.original_url)
+
+
+@app.get("/api/stats/{short_code}/{period}")
+def get_click_stats_api(short_code: str, period: str, db: Session = Depends(get_db)):
+    """API برای دریافت آمار کلیک‌ها
+
+    period: 'day', 'week', یا 'month'
+    """
+    if period not in ['day', 'week', 'month']:
+        raise HTTPException(status_code=400, detail="Invalid period. Use 'day', 'week', or 'month'")
+
+    db_url = services.get_url_info(db, short_code)
+    if not db_url:
+        raise HTTPException(status_code=404, detail="URL not found")
+
+    stats = services.get_click_stats(db, db_url.id, period)
+    return stats
 
 
 # API برای دریافت اطلاعات URL کوتاه
