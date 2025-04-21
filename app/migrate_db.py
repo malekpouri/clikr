@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os
 import sys
 import sqlite3
@@ -19,7 +18,7 @@ if project_root not in sys.path:
 
 
 def migrate_db():
-    """اضافه کردن ستون max_clicks به دیتابیس موجود"""
+    """ایجاد جدول click_logs برای ذخیره تاریخچه بازدیدها"""
     # مسیر فایل دیتابیس
     db_path = os.path.join(os.path.dirname(__file__), 'clikr.db')
 
@@ -32,18 +31,30 @@ def migrate_db():
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
-        # بررسی وجود ستون max_clicks
-        cursor.execute("PRAGMA table_info(urls)")
-        columns = cursor.fetchall()
-        column_names = [column[1] for column in columns]
+        # بررسی وجود جدول click_logs
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='click_logs'")
+        if cursor.fetchone() is None:
+            logger.info("ایجاد جدول click_logs...")
+            cursor.execute("""
+                           CREATE TABLE click_logs
+                           (
+                               id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                               url_id     INTEGER NOT NULL,
+                               clicked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                               user_agent TEXT,
+                               ip_address TEXT,
+                               FOREIGN KEY (url_id) REFERENCES urls (id)
+                           )
+                           """)
 
-        if 'max_clicks' not in column_names:
-            logger.info("اضافه کردن ستون max_clicks به جدول urls...")
-            cursor.execute("ALTER TABLE urls ADD COLUMN max_clicks INTEGER")
+            # ایجاد ایندکس برای بهبود عملکرد
+            cursor.execute("CREATE INDEX idx_click_logs_url_id ON click_logs (url_id)")
+            cursor.execute("CREATE INDEX idx_click_logs_clicked_at ON click_logs (clicked_at)")
+
             conn.commit()
-            logger.info("ستون max_clicks با موفقیت اضافه شد.")
+            logger.info("جدول click_logs با موفقیت ایجاد شد.")
         else:
-            logger.info("ستون max_clicks از قبل وجود دارد.")
+            logger.info("جدول click_logs از قبل وجود دارد.")
 
         # بستن اتصال
         conn.close()
@@ -55,7 +66,7 @@ def migrate_db():
 
 
 if __name__ == "__main__":
-    logger.info("شروع به‌روزرسانی دیتابیس برای محدودیت تعداد کلیک...")
+    logger.info("شروع به‌روزرسانی دیتابیس برای ذخیره تاریخچه بازدیدها...")
     success = migrate_db()
 
     if success:

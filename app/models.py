@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime, timedelta
 
@@ -26,3 +27,21 @@ class URL(Base):
             short_code=short_code,
             expires_at=expires_at
         )
+
+
+
+class ClickLog(Base):
+    __tablename__ = "click_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    url_id = Column(Integer, ForeignKey("urls.id"))
+    clicked_at = Column(DateTime(timezone=True), default=func.now())
+    user_agent = Column(String, nullable=True)
+    ip_address = Column(String, nullable=True)
+
+    # رابطه با مدل URL
+    url = relationship("URL", back_populates="click_logs")
+
+
+# اضافه کردن رابطه به مدل URL
+URL.click_logs = relationship("ClickLog", back_populates="url")

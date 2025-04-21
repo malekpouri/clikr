@@ -77,6 +77,95 @@ def get_original_url(db: Session, short_code: str) -> str:
     return db_url.original_url
 
 
+def log_click(db: Session, url_id: int, user_agent: str = None, ip_address: str = None) -> models.ClickLog:
+    """ثبت یک بازدید جدید در تاریخچه"""
+    click_log = models.ClickLog(
+        url_id=url_id,
+        user_agent=user_agent,
+        ip_address=ip_address
+    )
+    db.add(click_log)
+    db.commit()
+    db.refresh(click_log)
+    return click_log
+
+
+def get_click_stats(db: Session, url_id: int, period: str = 'day') -> dict:
+    """دریافت آمار کلیک‌ها بر اساس دوره زمانی
+
+    period می‌تواند یکی از مقادیر 'day', 'week', یا 'month' باشد.
+    """
+    from sqlalchemy import func, cast, Date, extract
+    from datetime import datetime, timedelta
+
+    # تاریخ شروع براساس دوره
+    now = datetime.now()
+    if period == 'day':
+        # 24 ساعت گذشته (گروه‌بندی بر اساس ساعت)
+        start_date = now - timedelta(days=1)
+        date_group = func.strftime('%Y-%m-%d %H:00:00', models.ClickLog.clicked_at)
+        date_format = '%H:00'
+    elif period == 'week':
+        # 7 روز گذشته (گروه‌بندی بر اساس روز)
+        start_date = now - timedelta(days=7)
+        date_group = func.strftime('%Y-%m-%d', models.ClickLog.clicked_at)
+        date_format = '%m-%d'
+    else:  # month
+        # 30 روز گذشته (گروه‌بندی بر اساس روز)
+        start_date = now - timedelta(days=30)
+        date_group = func.strftime('%Y-%m-%d', models.ClickLog.clicked_at)
+        date_format = '%m-%d'
+
+    # دریافت تعداد کلیک‌ها برای هر بازه زمانی
+    results = (
+        db.query(
+            date_group.label('date'),
+            func.count().label('count')
+        )
+        .filter(
+            models.ClickLog.url_id == url_id,
+            models.ClickLog.clicked_at >= start_date
+        )
+        .group_by('date')
+        .all()
+    )
+
+    # تبدیل نتایج به دیکشنری
+    data = {
+        'labels': [],
+        'counts': []
+    }
+
+    result_dict = {r.date: r.count for r in results}
+
+    # ایجاد تمام برچسب‌های زمانی ممکن در بازه، حتی اگر داده‌ای نداشته باشیم
+    if period == 'day':
+        # 24 ساعت گذشته
+        for i in range(24):
+            label_time = now - timedelta(hours=24 - i)
+            label = label_time.strftime(date_format)
+            key = label_time.strftime('%Y-%m-%d %H:00:00')
+            data['labels'].append(label)
+            data['counts'].append(result_dict.get(key, 0))
+    elif period == 'week':
+        # 7 روز گذشته
+        for i in range(7):
+            label_date = now - timedelta(days=7 - i)
+            label = label_date.strftime(date_format)
+            key = label_date.strftime('%Y-%m-%d')
+            data['labels'].append(label)
+            data['counts'].append(result_dict.get(key, 0))
+    else:  # month
+        # 30 روز گذشته
+        for i in range(30):
+            label_date = now - timedelta(days=30 - i)
+            label = label_date.strftime(date_format)
+            key = label_date.strftime('%Y-%m-%d')
+            data['labels'].append(label)
+            data['counts'].append(result_dict.get(key, 0))
+
+    return data
+
 # تابع دریافت اطلاعات URL با استفاده از کد کوتاه
 def get_url_info(db: Session, short_code: str) -> models.URL:
     db_url = db.query(models.URL).filter(models.URL.short_code == short_code).first()
