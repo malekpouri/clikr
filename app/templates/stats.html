@@ -6,6 +6,8 @@
     <title>آمار لینک - clikr</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
     <!-- Favicon -->
     <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', path='/favicon/apple-touch-icon.png') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', path='/favicon/favicon-32x32.png') }}">
@@ -94,6 +96,69 @@
 
             <div class="bg-white p-4 rounded-lg shadow">
                 <canvas id="clickChart" height="250"></canvas>
+            </div>
+        </div>
+
+        <div class="mt-8">
+            <h5 class="text-lg font-bold mb-4">اطلاعات جغرافیایی بازدیدکنندگان</h5>
+
+            <div class="inline-flex bg-gray-100 rounded-lg p-1 mb-4">
+                <button id="geo-countries-btn" class="px-4 py-2 rounded-lg font-medium text-sm active-tab"
+                        onclick="showGeoTab('countries')">کشورها
+                </button>
+                <button id="geo-cities-btn" class="px-4 py-2 rounded-lg font-medium text-sm"
+                        onclick="showGeoTab('cities')">شهرها
+                </button>
+                <button id="geo-devices-btn" class="px-4 py-2 rounded-lg font-medium text-sm"
+                        onclick="showGeoTab('devices')">دستگاه‌ها
+                </button>
+                <button id="geo-browsers-btn" class="px-4 py-2 rounded-lg font-medium text-sm"
+                        onclick="showGeoTab('browsers')">مرورگرها
+                </button>
+                <button id="geo-os-btn" class="px-4 py-2 rounded-lg font-medium text-sm"
+                        onclick="showGeoTab('os')">سیستم‌عامل‌ها
+                </button>
+                <button id="geo-referrers-btn" class="px-4 py-2 rounded-lg font-medium text-sm"
+                        onclick="showGeoTab('referrers')">منابع بازدید
+                </button>
+            </div>
+
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div id="geo-tab-content">
+                    <div id="geo-loading" class="text-center py-4">
+                        <div class="loading mx-auto"></div>
+                        <p class="mt-2 text-gray-500">در حال بارگذاری اطلاعات...</p>
+                    </div>
+
+                    <div id="geo-countries" class="geo-tab hidden">
+                        <div id="countriesChart" height="250"></div>
+                    </div>
+
+                    <div id="geo-cities" class="geo-tab hidden">
+                        <div id="citiesChart" height="250"></div>
+                    </div>
+
+                    <div id="geo-devices" class="geo-tab hidden">
+                        <div id="devicesChart" height="250"></div>
+                    </div>
+
+                    <div id="geo-browsers" class="geo-tab hidden">
+                        <div id="browsersChart" height="250"></div>
+                    </div>
+
+                    <div id="geo-os" class="geo-tab hidden">
+                        <div id="osChart" height="250"></div>
+                    </div>
+
+                    <div id="geo-referrers" class="geo-tab hidden">
+                        <div id="referrersChart" height="250"></div>
+                    </div>
+
+                    <div id="geo-no-data" class="hidden text-center py-4">
+                        <i class="fas fa-exclamation-circle text-yellow-500 text-3xl mb-2"></i>
+                        <p class="text-gray-600">داده‌ای برای نمایش وجود ندارد</p>
+                    </div>
+                </div>
             </div>
         </div>
         <!-- کد QR -->
@@ -268,6 +333,239 @@
     document.addEventListener('DOMContentLoaded', function () {
         if ('{{ url_info.short_code }}') {
             changeChartPeriod('day');
+        }
+    });
+</script>
+<!-- app/templates/stats.html - برنچ feature/geo-info (اضافه کردن اسکریپت) -->
+<script>
+    // متغیرهای نمودارها
+    let geoCharts = {};
+    let geoData = null;
+
+    // تابع نمایش تب انتخاب شده
+    function showGeoTab(tabName) {
+        // مخفی کردن همه تب‌ها
+        document.querySelectorAll('.geo-tab').forEach(tab => {
+            tab.classList.add('hidden');
+        });
+
+        // غیرفعال کردن همه دکمه‌ها
+        document.querySelectorAll('[id^="geo-"][id$="-btn"]').forEach(btn => {
+            btn.classList.remove('active-tab');
+        });
+
+        // نمایش تب انتخاب شده
+        const tabElement = document.getElementById(`geo-${tabName}`);
+        const btnElement = document.getElementById(`geo-${tabName}-btn`);
+
+        if (tabElement) tabElement.classList.remove('hidden');
+        if (btnElement) btnElement.classList.add('active-tab');
+
+        // اگر داده‌ای وجود ندارد
+        if (!geoData || !geoData[tabName] || geoData[tabName].length === 0) {
+            document.getElementById('geo-no-data').classList.remove('hidden');
+            if (tabElement) tabElement.classList.add('hidden');
+        } else {
+            document.getElementById('geo-no-data').classList.add('hidden');
+
+            // اگر نمودار قبلا ایجاد نشده، آن را ایجاد کن
+            if (!geoCharts[tabName]) {
+                createGeoChart(tabName);
+            }
+        }
+    }
+
+    // تابع ایجاد نمودار با ApexCharts
+    function createGeoChart(type) {
+        if (!geoData || !geoData[type]) return;
+
+        const data = geoData[type];
+        const chartData = data.map(item => item.count);
+        const chartLabels = data.map(item => item.name);
+
+        // عنوان نمودار براساس نوع
+        const titles = {
+            'countries': 'توزیع بازدیدکنندگان بر اساس کشور',
+            'cities': 'توزیع بازدیدکنندگان بر اساس شهر',
+            'devices': 'توزیع بازدیدکنندگان بر اساس نوع دستگاه',
+            'browsers': 'توزیع بازدیدکنندگان بر اساس مرورگر',
+            'os': 'توزیع بازدیدکنندگان بر اساس سیستم عامل',
+            'referrers': 'منابع ارجاع دهنده بازدیدکنندگان'
+        };
+
+        // رنگ‌ها برای نمودارها
+        const colors = [
+            '#3F51B5', '#FF4081', '#4CAF50', '#FFC107',
+            '#9C27B0', '#03A9F4', '#F44336', '#009688',
+            '#673AB7', '#FF5722'
+        ];
+
+        // آپشن‌های مشترک
+        const commonOptions = {
+            chart: {
+                fontFamily: 'Vazir, Tahoma, Arial, sans-serif',
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 800
+                },
+                toolbar: {
+                    show: false
+                },
+                background: '#fff',
+            },
+            title: {
+                text: titles[type] || `آمار ${type}`,
+                align: 'center',
+                style: {
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    fontFamily: 'Vazir, Tahoma, Arial, sans-serif'
+                }
+            },
+            colors: colors,
+            tooltip: {
+                theme: 'light',
+                y: {
+                    formatter: function (val) {
+                        return val + ' بازدید';
+                    }
+                }
+            },
+            legend: {
+                position: 'bottom',
+                horizontalAlign: 'center',
+                fontFamily: 'Vazir, Tahoma, Arial, sans-serif'
+            },
+            responsive: [{
+                breakpoint: 480,
+                options: {
+                    legend: {
+                        position: 'bottom',
+                        offsetY: 0
+                    }
+                }
+            }]
+        };
+
+        let options = {};
+
+        // نوع نمودار متفاوت برای هر تب
+        if (type === 'devices') {
+            // نمودار دایره‌ای برای دستگاه‌ها
+            options = {
+                ...commonOptions,
+                chart: {
+                    ...commonOptions.chart,
+                    type: 'pie',
+                    height: 350
+                },
+                labels: chartLabels,
+                series: chartData,
+                legend: {
+                    ...commonOptions.legend,
+                    position: 'right'
+                }
+            };
+        } else {
+            // نمودار ستونی برای بقیه
+            options = {
+                ...commonOptions,
+                chart: {
+                    ...commonOptions.chart,
+                    type: 'bar',
+                    height: 350
+                },
+                plotOptions: {
+                    bar: {
+                        borderRadius: 4,
+                        horizontal: true,
+                        distributed: true,
+                        dataLabels: {
+                            position: 'top'
+                        }
+                    }
+                },
+                dataLabels: {
+                    enabled: true,
+                    formatter: function (val) {
+                        return val;
+                    },
+                    offsetX: 20,
+                    style: {
+                        fontSize: '12px',
+                        colors: ['#304758']
+                    }
+                },
+                series: [{
+                    name: 'بازدیدها',
+                    data: chartData
+                }],
+                xaxis: {
+                    categories: chartLabels,
+                    labels: {
+                        style: {
+                            fontFamily: 'Vazir, Tahoma, Arial, sans-serif'
+                        }
+                    }
+                },
+                yaxis: {
+                    labels: {
+                        style: {
+                            fontFamily: 'Vazir, Tahoma, Arial, sans-serif'
+                        }
+                    }
+                }
+            };
+        }
+
+        if (geoCharts[type]) {
+            geoCharts[type].destroy();
+        }
+
+        geoCharts[type] = new ApexCharts(document.getElementById(`${type}Chart`), options);
+        geoCharts[type].render();
+    }
+
+    // بارگیری داده‌های جغرافیایی
+    async function loadGeoData() {
+        try {
+            document.getElementById('geo-loading').classList.remove('hidden');
+            document.querySelectorAll('.geo-tab').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById('geo-no-data').classList.add('hidden');
+
+            const response = await fetch(`/api/geo/{{ url_info.short_code }}`);
+
+            if (!response.ok) {
+                throw new Error('خطا در دریافت اطلاعات');
+            }
+
+            geoData = await response.json();
+
+            // مخفی کردن نشانگر بارگذاری
+            document.getElementById('geo-loading').classList.add('hidden');
+
+            // نمایش تب فعال
+            showGeoTab('countries');
+        } catch (error) {
+            console.error('Error fetching geo data:', error);
+            document.getElementById('geo-loading').classList.add('hidden');
+            document.getElementById('geo-no-data').classList.remove('hidden');
+        }
+    }
+
+    // بارگذاری اولیه داده‌های جغرافیایی
+    document.addEventListener('DOMContentLoaded', function () {
+        if ('{{ url_info.short_code }}') {
+            // افزودن کتابخانه ApexCharts اگر هنوز اضافه نشده
+            if (typeof ApexCharts === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/apexcharts';
+                script.onload = loadGeoData;
+                document.head.appendChild(script);
+            } else {
+                loadGeoData();
+            }
         }
     });
 </script>

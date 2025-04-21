@@ -9,3 +9,5 @@ python-multipart
 jdatetime
 qrcode
 pillow
+geoip2
+user-agents
