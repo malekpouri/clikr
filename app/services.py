@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
+
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from . import models
 from .utils import generate_short_code, normalize_url
@@ -50,7 +51,7 @@ def create_short_url(db: Session, original_url: str, expiry_days: int = 90, max_
 
 
 # تابع دریافت URL اصلی با استفاده از کد کوتاه
-def get_original_url(db: Session, short_code: str) -> str:
+def get_original_url(db: Session, short_code: str) -> str | None:
     db_url = db.query(models.URL).filter(models.URL.short_code == short_code).first()
 
     if not db_url or not db_url.is_active:
@@ -222,7 +223,7 @@ def get_click_stats(db: Session, url_id: int, period: str = 'day') -> dict:
 
     period می‌تواند یکی از مقادیر 'day', 'week', یا 'month' باشد.
     """
-    from sqlalchemy import func, cast, Date, extract
+    from sqlalchemy import func
     from datetime import datetime, timedelta
 
     # تاریخ شروع براساس دوره
