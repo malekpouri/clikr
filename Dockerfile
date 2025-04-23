@@ -3,7 +3,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # نصب cron و تنظیم پیش‌نیازها
-RUN apt-get update && apt-get -y install cron && apt-get clean
+RUN apt-get update && apt-get -y install curl cron && apt-get clean
 
 # کپی فایل‌های مورد نیاز
 COPY requirements.txt .
@@ -16,6 +16,9 @@ COPY . .
 
 # ساخت فولدرهای مورد نیاز
 RUN mkdir -p app/static app/templates logs
+
+# دانلود فایل GeoLite2-City.mmdb
+RUN curl -L -o app/static/GeoLite2-City.mmdb https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-City.mmdb
 
 # تنظیم cron job
 RUN echo "0 2 * * 0 cd /app && python /app/app/cleanup.py >> /app/logs/cleanup.log 2>&1" > /etc/cron.d/clikr-cron
