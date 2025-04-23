@@ -12,21 +12,6 @@ def create_short_url(db: Session, original_url: str, expiry_days: int = 90, max_
     # نرمال‌سازی URL
     normalized_url = normalize_url(original_url)
 
-    # بررسی وجود URL در دیتابیس
-    db_url = db.query(models.URL).filter(
-        models.URL.original_url == normalized_url,
-        models.URL.is_active == True
-    ).first()
-
-    if db_url:
-        # به‌روزرسانی تاریخ انقضا
-        db_url.expires_at = datetime.now() + timedelta(days=expiry_days)
-        if max_clicks is not None:
-            db_url.max_clicks = max_clicks
-        db.commit()
-        db.refresh(db_url)
-        return db_url
-
     # ایجاد کد کوتاه جدید
     for _ in range(5):  # تلاش ۵ بار در صورت تکراری بودن کد
         short_code = generate_short_code()
