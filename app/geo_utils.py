@@ -15,7 +15,11 @@ def get_geo_info(ip_address: str) -> Dict[str, Any]:
         'city': None
     }
 
-    if not ip_address : #or ip_address in ('127.0.0.1', 'localhost', '::1'):
+    # if not ip_address : #or ip_address in ('127.0.0.1', 'localhost', '::1'):
+    #     return result
+    if not ip_address or ip_address == '127.0.0.1' or ip_address.startswith(('192.168.', '10.', '172.16.', '::1')):
+        result['country'] = 'Local Network'
+        result['city'] = 'Local'
         return result
 
     try:
@@ -24,8 +28,14 @@ def get_geo_info(ip_address: str) -> Dict[str, Any]:
                 response = reader.city(ip_address)
                 result['country'] = response.country.name
                 result['city'] = response.city.name
+        else:
+            # حالت پیش‌فرض اگر دیتابیس وجود نداشت
+            result['country'] = 'Unknown'
+            result['city'] = 'Unknown'
     except Exception as e:
         print(f"خطا در استخراج اطلاعات جغرافیایی: {e}")
+        result['country'] = 'Error'
+        result['city'] = 'Error'
 
     return result
 
