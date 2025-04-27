@@ -1,0 +1,507 @@
+<!-- app/templates/site_analytics.html -->
+<!DOCTYPE html>
+<html lang="fa" class="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>آمار سایت - clikr</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', path='/favicon/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', path='/favicon/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', path='/favicon/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ url_for('static', path='/favicon/site.webmanifest') }}">
+    <style>
+        #clickChart, #deviceChart, #browserChart, #osChart, #countryChart, #refererChart, #pathChart {
+            min-height: 250px;
+            height: 100%;
+            width: 100%;
+        }
+
+        .stats-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .stats-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3f51b5;
+        }
+
+        .stats-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .apexcharts-canvas {
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+<div class="main-container">
+    <header class="text-center mb-6">
+        <a href="/" class="text-decoration-none">
+            <div class="logo">clikr</div>
+        </a>
+        <p class="text-lg text-gray-600">آمار بازدیدهای سایت</p>
+        <div class="mt-2">
+            <a href="/" class="btn-outline-primary mr-2">
+                <i class="fas fa-home ml-1"></i> صفحه اصلی
+            </a>
+        </div>
+    </header>
+
+    <section class="url-form">
+        <h2 class="text-xl font-bold mb-4">آمار کلی بازدیدها</h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+            <div class="stats-card text-center">
+                <div class="stats-value">{{ total_stats.total_visits }}</div>
+                <div class="stats-label">تعداد کل بازدیدها</div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="stats-value">{{ total_stats.today_visits }}</div>
+                <div class="stats-label">بازدیدهای امروز</div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="stats-value">{{ total_stats.unique_users }}</div>
+                <div class="stats-label">کاربران منحصر به فرد</div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="stats-value">{{ total_stats.week_visits }}</div>
+                <div class="stats-label">بازدیدهای هفته اخیر</div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="stats-value">{{ total_stats.month_visits }}</div>
+                <div class="stats-label">بازدیدهای ماه اخیر</div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="stats-value">{{ total_stats.yesterday_visits }}</div>
+                <div class="stats-label">بازدیدهای دیروز</div>
+            </div>
+        </div>
+
+        <div class="mt-8">
+            <h3 class="text-lg font-bold mb-4">نمودار بازدیدها</h3>
+
+            <div class="flex justify-center mb-4">
+                <div class="inline-flex bg-gray-100 rounded-lg p-1">
+                    <button id="day-btn" class="px-4 py-2 rounded-lg font-medium text-sm active-tab"
+                            onclick="changeChartPeriod('day')">روزانه
+                    </button>
+                    <button id="week-btn" class="px-4 py-2 rounded-lg font-medium text-sm"
+                            onclick="changeChartPeriod('week')">هفتگی
+                    </button>
+                    <button id="month-btn" class="px-4 py-2 rounded-lg font-medium text-sm"
+                            onclick="changeChartPeriod('month')">ماهانه
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-lg shadow mb-8">
+                <div id="clickChart"></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <!-- نمودار نوع دستگاه -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h6 class="text-lg font-bold mb-3">نوع دستگاه</h6>
+                <div id="deviceChart"></div>
+            </div>
+
+            <!-- نمودار مرورگرها -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h6 class="text-lg font-bold mb-3">مرورگرها</h6>
+                <div id="browserChart"></div>
+            </div>
+
+            <!-- نمودار سیستم‌عامل -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h6 class="text-lg font-bold mb-3">سیستم‌عامل</h6>
+                <div id="osChart"></div>
+            </div>
+
+            <!-- نمودار کشورها -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h6 class="text-lg font-bold mb-3">کشورها</h6>
+                <div id="countryChart"></div>
+            </div>
+        </div>
+
+        <!-- نمودار منابع ترافیک و مسیرها -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h6 class="text-lg font-bold mb-3">منابع ترافیک</h6>
+                <div id="refererChart"></div>
+            </div>
+
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h6 class="text-lg font-bold mb-3">مسیرهای پربازدید</h6>
+                <div id="pathChart"></div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <p>clikr &copy; ۱۴۰۴ - سرویس کوتاه‌کننده لینک</p>
+    </footer>
+</div>
+
+<script>
+    // تنظیم رنگ‌های پیش‌فرض
+    const colors = {
+        primary: '#3f51b5',
+        secondary: '#ff9800',
+        success: '#4caf50',
+        danger: '#f44336',
+        purple: '#9c27b0',
+        gray: '#607d8b',
+        yellow: '#ffeb3b',
+        teal: '#009688',
+        brown: '#795548',
+        pink: '#e91e63'
+    };
+
+    // نمودارها
+    let visitChart = null;
+    let deviceChart = null;
+    let browserChart = null;
+    let osChart = null;
+    let countryChart = null;
+    let refererChart = null;
+    let pathChart = null;
+
+    // CSS برای دکمه‌های فعال
+    document.getElementById('day-btn').classList.add('bg-blue-500', 'text-white');
+
+    // تابع تغییر دوره زمانی نمودار
+    async function changeChartPeriod(period) {
+        // به‌روزرسانی وضعیت فعال دکمه‌ها
+        document.querySelectorAll('.inline-flex button').forEach(btn => {
+            btn.classList.remove('bg-blue-500', 'text-white');
+        });
+        document.getElementById(`${period}-btn`).classList.add('bg-blue-500', 'text-white');
+
+        try {
+            // دریافت داده‌ها از API
+            const response = await fetch(`/api/site-stats/visits/${period}`);
+            const data = await response.json();
+
+            // نمایش نمودار
+            renderVisitChart(data.labels, data.counts, period);
+        } catch (error) {
+            console.error('Error fetching visit chart data:', error);
+        }
+    }
+
+    // تابع رسم نمودار بازدیدها
+    function renderVisitChart(labels, counts, period) {
+        // تنظیم عنوان براساس دوره
+        let title = 'بازدیدهای 24 ساعت گذشته';
+        if (period === 'week') {
+            title = 'بازدیدهای 7 روز گذشته';
+        } else if (period === 'month') {
+            title = 'بازدیدهای 30 روز گذشته';
+        }
+
+        const options = {
+            series: [{
+                name: 'تعداد بازدیدها',
+                data: counts
+            }],
+            chart: {
+                type: 'area',
+                height: 350,
+                fontFamily: 'Vazir, Tahoma, Arial, sans-serif',
+                toolbar: {
+                    show: true
+                },
+                zoom: {
+                    enabled: true
+                }
+            },
+            dataLabels: {
+                enabled: false
+            },
+            stroke: {
+                curve: 'smooth',
+                width: 2
+            },
+            colors: [colors.primary],
+            title: {
+                text: title,
+                align: 'center',
+                style: {
+                    fontSize: '16px',
+                    fontWeight: 'bold'
+                }
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.7,
+                    opacityTo: 0.3,
+                    stops: [0, 90, 100]
+                }
+            },
+            xaxis: {
+                categories: labels,
+                labels: {
+                    rotate: 0
+                }
+            },
+            yaxis: {
+                labels: {
+                    formatter: function (val) {
+                        return Math.round(val);
+                    }
+                }
+            },
+            tooltip: {
+                y: {
+                    formatter: function (val) {
+                        return val + " بازدید";
+                    }
+                }
+            }
+        };
+
+        if (visitChart) {
+            visitChart.destroy();
+        }
+
+        visitChart = new ApexCharts(document.querySelector("#clickChart"), options);
+        visitChart.render();
+    }
+
+    // تابع رسم نمودار دایره‌ای
+    function renderPieChart(elementId, title, labels, values, colors) {
+        const options = {
+            series: values,
+            chart: {
+                type: 'donut',
+                height: 320,
+                fontFamily: 'Vazir, Tahoma, Arial, sans-serif',
+            },
+            labels: labels,
+            colors: colors,
+            title: {
+                text: title,
+                align: 'center',
+                style: {
+                    fontSize: '16px',
+                    fontWeight: 'bold'
+                }
+            },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '55%'
+                    }
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                formatter: function (val) {
+                    return Math.round(val) + '%';
+                }
+            },
+            legend: {
+                position: 'bottom',
+                fontSize: '13px'
+            },
+            tooltip: {
+                y: {
+                    formatter: function(val, opts) {
+                        // درصد را به تعداد تبدیل می‌کنیم
+                        const total = opts.globals.series.reduce((a, b) => a + b, 0);
+                        const count = Math.round(val * total / 100);
+                        return count + " بازدید (" + Math.round(val) + "%)";
+                    }
+                }
+            },
+            responsive: [{
+                breakpoint: 480,
+                options: {
+                    chart: {
+                        height: 280
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }]
+        };
+
+        return new ApexCharts(document.querySelector(elementId), options);
+    }
+
+    // تابع رسم نمودار میله‌ای افقی
+    function renderBarChart(elementId, title, labels, values, color) {
+        const options = {
+            series: [{
+                name: 'تعداد بازدیدها',
+                data: values
+            }],
+            chart: {
+                type: 'bar',
+                height: 320,
+                fontFamily: 'Vazir, Tahoma, Arial, sans-serif',
+            },
+            plotOptions: {
+                bar: {
+                    borderRadius: 4,
+                    horizontal: true,
+                }
+            },
+            colors: [color],
+            dataLabels: {
+                enabled: false
+            },
+            title: {
+                text: title,
+                align: 'center',
+                style: {
+                    fontSize: '16px',
+                    fontWeight: 'bold'
+                }
+            },
+            xaxis: {
+                categories: labels,
+                labels: {
+                    formatter: function (val) {
+                        return Math.round(val);
+                    }
+                }
+            },
+            tooltip: {
+                y: {
+                    formatter: function (val) {
+                        return val + " بازدید";
+                    }
+                }
+            }
+        };
+
+        return new ApexCharts(document.querySelector(elementId), options);
+    }
+
+    // بارگذاری همه نمودارها
+    async function loadAllCharts() {
+        try {
+            // بارگذاری نمودار نوع دستگاه
+            const deviceResponse = await fetch('/api/site-stats/devices');
+            const deviceData = await deviceResponse.json();
+
+            if (deviceData.labels.length > 0) {
+                deviceChart = renderPieChart(
+                    "#deviceChart",
+                    "نوع دستگاه",
+                    deviceData.labels,
+                    deviceData.counts,
+                    deviceData.colors || [colors.primary, colors.secondary, colors.success, colors.danger, colors.purple]
+                );
+                deviceChart.render();
+            }
+
+            // بارگذاری نمودار مرورگرها
+            const browserResponse = await fetch('/api/site-stats/browsers');
+            const browserData = await browserResponse.json();
+
+            if (browserData.labels.length > 0) {
+                browserChart = renderPieChart(
+                    "#browserChart",
+                    "مرورگرها",
+                    browserData.labels,
+                    browserData.counts,
+                    browserData.colors || [colors.primary, colors.secondary, colors.success, colors.danger, colors.purple]
+                );
+                browserChart.render();
+            }
+
+            // بارگذاری نمودار سیستم‌عامل
+            const osResponse = await fetch('/api/site-stats/os');
+            const osData = await osResponse.json();
+
+            if (osData.labels.length > 0) {
+                osChart = renderPieChart(
+                    "#osChart",
+                    "سیستم‌عامل",
+                    osData.labels,
+                    osData.counts,
+                    osData.colors || [colors.success, colors.primary, colors.secondary, colors.danger, colors.purple]
+                );
+                osChart.render();
+            }
+
+            // بارگذاری نمودار کشورها
+            const countryResponse = await fetch('/api/site-stats/countries');
+            const countryData = await countryResponse.json();
+
+            if (countryData.labels.length > 0) {
+                countryChart = renderBarChart(
+                    "#countryChart",
+                    "کشورها",
+                    countryData.labels,
+                    countryData.counts,
+                    colors.primary
+                );
+                countryChart.render();
+            }
+
+            // بارگذاری نمودار منابع ترافیک
+            const refererResponse = await fetch('/api/site-stats/referers');
+            const refererData = await refererResponse.json();
+
+            if (refererData.labels.length > 0) {
+                refererChart = renderPieChart(
+                    "#refererChart",
+                    "منابع ترافیک",
+                    refererData.labels,
+                    refererData.counts,
+                    refererData.colors || [colors.primary, colors.secondary, colors.success, colors.danger, colors.purple]
+                );
+                refererChart.render();
+            }
+
+            // بارگذاری نمودار مسیرها
+            const pathResponse = await fetch('/api/site-stats/paths');
+            const pathData = await pathResponse.json();
+
+            if (pathData.labels.length > 0) {
+                pathChart = renderBarChart(
+                    "#pathChart",
+                    "مسیرهای پربازدید",
+                    pathData.labels,
+                    pathData.counts,
+                    colors.secondary
+                );
+                pathChart.render();
+            }
+
+        } catch (error) {
+            console.error('Error loading charts:', error);
+        }
+    }
+
+    // بارگذاری نمودارها پس از بارگذاری صفحه
+    document.addEventListener('DOMContentLoaded', function() {
+        changeChartPeriod('day');
+        loadAllCharts();
+    });
+</script>
+</body>
+</html>

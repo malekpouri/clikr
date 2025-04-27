@@ -12,8 +12,7 @@ from typing import Optional
 import os
 import sys
 from fastapi import Response
-
-
+from .middlewares import AnalyticsMiddleware
 
 # مدیریت import های نسبی برای حالتی که فایل به صورت مستقیم اجرا شود
 if __name__ == "__main__":
@@ -23,11 +22,11 @@ if __name__ == "__main__":
         sys.path.insert(0, package_path)
 
     # وارد کردن ماژول‌ها به صورت مطلق
-    from app import models, services, utils
+    from app import models, services, utils ,analytics_services
     from app.database import engine, get_db
 else:
     # وارد کردن ماژول‌ها به صورت نسبی (برای uvicorn)
-    from . import models, services, utils
+    from . import models, services, utils ,analytics_services
     from .database import engine, get_db
 
 # ایجاد دیتابیس اگر وجود نداشته باشد
@@ -42,6 +41,7 @@ templates = Jinja2Templates(directory=templates_path)
 
 # اضافه کردن فولدر static برای فایل‌های CSS و JS
 static_path = os.path.join(os.path.dirname(__file__), "static")
+app.add_middleware(AnalyticsMiddleware)
 app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 
@@ -244,6 +244,7 @@ Allow: /
 Sitemap: https://clikr.ir/sitemap.xml
 """
     return Response(content=content.strip(), media_type="text/plain")
+
 
 @app.get("/sitemap.xml")
 async def sitemap_xml():
@@ -453,6 +454,86 @@ async def extend_expiry_form(
         }
     )
 
+
+# اضافه کردن به main.py
+
+@app.get("/api/site-stats/visits/{period}")
+def get_site_visits_api(period: str, db: Session = Depends(get_db)):
+    """API برای دریافت آمار بازدیدهای سایت"""
+    if period not in ['day', 'week', 'month']:
+        raise HTTPException(status_code=400, detail="Invalid period. Use 'day', 'week', or 'month'")
+
+    stats = analytics_services.get_site_visits_stats(db, period)
+    return stats
+
+
+@app.get("/api/site-stats/devices")
+def get_site_devices_api(db: Session = Depends(get_db)):
+    """API برای دریافت آمار دستگاه‌های بازدیدکنندگان سایت"""
+    stats = analytics_services.get_site_device_stats(db)
+    return stats
+
+
+@app.get("/api/site-stats/browsers")
+def get_site_browsers_api(db: Session = Depends(get_db)):
+    """API برای دریافت آمار مرورگرهای بازدیدکنندگان سایت"""
+    stats = analytics_services.get_site_browser_stats(db)
+    return stats
+
+
+@app.get("/api/site-stats/os")
+def get_site_os_api(db: Session = Depends(get_db)):
+    """API برای دریافت آمار سیستم‌عامل‌های بازدیدکنندگان سایت"""
+    stats = analytics_services.get_site_os_stats(db)
+    return stats
+
+
+@app.get("/api/site-stats/countries")
+def get_site_countries_api(db: Session = Depends(get_db)):
+    """API برای دریافت آمار کشورهای بازدیدکنندگان سایت"""
+    stats = analytics_services.get_site_country_stats(db)
+    return stats
+
+
+@app.get("/api/site-stats/referers")
+def get_site_referers_api(db: Session = Depends(get_db)):
+    """API برای دریافت آمار منابع ارجاع بازدیدکنندگان سایت"""
+    stats = analytics_services.get_site_referer_stats(db)
+    return stats
+
+
+@app.get("/api/site-stats/paths")
+def get_site_paths_api(db: Session = Depends(get_db)):
+    """API برای دریافت آمار مسیرهای بازدیدشده سایت"""
+    stats = analytics_services.get_site_path_stats(db)
+    return stats
+
+
+@app.get("/api/site-stats/total")
+def get_site_total_stats_api(db: Session = Depends(get_db)):
+    """API برای دریافت آمار کلی بازدید سایت"""
+    stats = analytics_services.get_site_total_stats(db)
+    return stats
+
+
+# اضافه کردن به main.py
+
+@app.get("/admin/analytics", response_class=HTMLResponse)
+async def site_analytics(request: Request, db: Session = Depends(get_db)):
+    """صفحه آمار بازدیدهای سایت"""
+    # بررسی دسترسی (اینجا ساده در نظر گرفته شده)
+    # در حالت واقعی، باید سیستم احراز هویت مناسب استفاده شود
+
+    # آمار کلی
+    total_stats = analytics_services.get_site_total_stats(db)
+
+    return templates.TemplateResponse(
+        "site_analytics.html",
+        {
+            "request": request,
+            "total_stats": total_stats
+        }
+    )
 
 # اگر به صورت مستقیم اجرا شود (نه با راه‌اندازی از بیرون)
 if __name__ == "__main__":
