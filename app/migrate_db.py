@@ -1,4 +1,5 @@
-# app/migrate_geo.py - برنچ geo_info
+# app/migrate_site_analytics.py
+# !/usr/bin/env python3
 import os
 import sys
 import sqlite3
@@ -10,15 +11,11 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler()]
 )
-logger = logging.getLogger('geo_migration')
+logger = logging.getLogger('db_migration')
 
-# اضافه کردن مسیر پروژه به sys.path
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
 
-def migrate_geo_db():
-    """اضافه کردن فیلدهای جغرافیایی به جدول click_logs"""
+def migrate_db():
+    """ایجاد جدول site_visits برای ذخیره آمار بازدیدهای سایت"""
     # مسیر فایل دیتابیس
     db_path = os.path.join(os.path.dirname(__file__), 'clikr.db')
 
@@ -31,40 +28,35 @@ def migrate_geo_db():
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
-        # بررسی وجود جدول click_logs
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='click_logs'")
+        # بررسی وجود جدول site_visits
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='site_visits'")
         if cursor.fetchone() is None:
-            logger.error("جدول click_logs وجود ندارد!")
-            return False
+            logger.info("ایجاد جدول site_visits...")
+            cursor.execute("""
+                           CREATE TABLE site_visits
+                           (
+                               id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                               visited_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                               path        TEXT,
+                               user_agent  TEXT,
+                               ip_address  TEXT,
+                               country     TEXT,
+                               city        TEXT,
+                               device_type TEXT,
+                               browser     TEXT,
+                               os          TEXT,
+                               referer     TEXT
+                           )
+                           """)
 
-        # اضافه کردن ستون‌های جدید
-        columns_to_add = [
-            ("country", "TEXT"),
-            ("city", "TEXT"),
-            ("device_type", "TEXT"),
-            ("browser", "TEXT"),
-            ("os", "TEXT"),
-            ("referrer", "TEXT")
-        ]
+            # ایجاد ایندکس برای بهبود عملکرد
+            cursor.execute("CREATE INDEX idx_site_visits_visited_at ON site_visits (visited_at)")
+            cursor.execute("CREATE INDEX idx_site_visits_path ON site_visits (path)")
 
-        for column_name, column_type in columns_to_add:
-            try:
-                cursor.execute(f"SELECT {column_name} FROM click_logs LIMIT 1")
-                logger.info(f"ستون {column_name} از قبل وجود دارد.")
-            except sqlite3.OperationalError:
-                # ستون وجود ندارد، آن را اضافه می‌کنیم
-                cursor.execute(f"ALTER TABLE click_logs ADD COLUMN {column_name} {column_type}")
-                logger.info(f"ستون {column_name} با موفقیت اضافه شد.")
-
-        # ایجاد ایندکس برای بهبود عملکرد جستجو
-        try:
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_click_logs_country ON click_logs (country)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_click_logs_device ON click_logs (device_type)")
-        except sqlite3.OperationalError as e:
-            logger.warning(f"خطا در ایجاد ایندکس: {e}")
-
-        conn.commit()
-        logger.info("به‌روزرسانی ساختار دیتابیس با موفقیت انجام شد.")
+            conn.commit()
+            logger.info("جدول site_visits با موفقیت ایجاد شد.")
+        else:
+            logger.info("جدول site_visits از قبل وجود دارد.")
 
         # بستن اتصال
         conn.close()
@@ -74,9 +66,10 @@ def migrate_geo_db():
         logger.error(f"خطا در به‌روزرسانی دیتابیس: {e}")
         return False
 
+
 if __name__ == "__main__":
-    logger.info("شروع به‌روزرسانی دیتابیس برای ذخیره اطلاعات جغرافیایی...")
-    success = migrate_geo_db()
+    logger.info("شروع به‌روزرسانی دیتابیس برای آمار بازدیدهای سایت...")
+    success = migrate_db()
 
     if success:
         logger.info("به‌روزرسانی دیتابیس با موفقیت انجام شد.")

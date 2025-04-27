@@ -6,8 +6,9 @@ python-nanoid
 aiosqlite
 jinja2
 python-multipart
-jdatetime
-qrcode
+jdatetime~=5.2.0
+qrcode~=8.1
 pillow
-geoip2
-user-agents
+geoip2~=5.0.1
+user-agents~=2.2.0
+starlette~=0.46.2

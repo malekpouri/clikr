@@ -49,6 +49,21 @@ class ClickLog(Base):
     # رابطه با مدل URL
     url = relationship("URL", back_populates="click_logs")
 
+# اضافه کردن به models.py
+class SiteVisit(Base):
+    __tablename__ = "site_visits"
+
+    id = Column(Integer, primary_key=True, index=True)
+    visited_at = Column(DateTime(timezone=True), default=func.now())
+    path = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    ip_address = Column(String, nullable=True)
+    country = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    device_type = Column(String, nullable=True)
+    browser = Column(String, nullable=True)
+    os = Column(String, nullable=True)
+    referer = Column(String, nullable=True)
 
 # اضافه کردن رابطه به مدل URL
 URL.click_logs = relationship("ClickLog", back_populates="url")
