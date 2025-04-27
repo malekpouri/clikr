@@ -11,6 +11,9 @@ from pydantic import BaseModel
 from typing import Optional
 import os
 import sys
+from fastapi import Response
+
+
 
 # مدیریت import های نسبی برای حالتی که فایل به صورت مستقیم اجرا شود
 if __name__ == "__main__":
@@ -45,9 +48,12 @@ app.mount("/static", StaticFiles(directory=static_path), name="static")
 # مدل پایتونیک برای API
 class URLBase(BaseModel):
     url: str
+
+
 # API برای ایجاد URL کوتاه
 class URLCreate(URLBase):
     max_clicks: Optional[int] = None
+
 
 class URLInfo(URLBase):
     short_code: str
@@ -120,6 +126,7 @@ async def show_stats(request: Request, short_code: str, db: Session = Depends(ge
         }
     )
 
+
 @app.get("/api/docs", response_class=HTMLResponse)
 async def api_docs(request: Request):
     """صفحه مستندات API"""
@@ -130,6 +137,7 @@ async def api_docs(request: Request):
             "base_url": str(request.base_url)
         }
     )
+
 
 @app.get("/qr/{short_code}")
 async def download_qr_code(request: Request, short_code: str, db: Session = Depends(get_db)):
@@ -155,9 +163,6 @@ async def download_qr_code(request: Request, short_code: str, db: Session = Depe
             "Content-Disposition": f'attachment; filename="clikr-{short_code}.png"'
         }
     )
-
-
-
 
 
 @app.post("/api/shorten", response_model=URLInfo)
@@ -228,6 +233,31 @@ async def create_short_from_form(
             "qr_code": qr_code
         }
     )
+
+
+@app.get("/robots.txt")
+async def robots_txt():
+    content = """
+User-agent: *
+Disallow: /admin/
+Allow: /
+Sitemap: https://clikr.ir/sitemap.xml
+"""
+    return Response(content=content.strip(), media_type="text/plain")
+
+@app.get("/sitemap.xml")
+async def sitemap_xml():
+    content = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>https://clikr.ir/</loc>
+        <lastmod>2025-04-20</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
+    </url>    
+</urlset>
+"""
+    return Response(content=content.strip(), media_type="application/xml")
 
 
 # هدایت به URL اصلی با استفاده از کد کوتاه
@@ -303,6 +333,7 @@ def get_geo_stats_api(short_code: str, db: Session = Depends(get_db)):
         result[key] = [{"name": item[0] or "نامشخص", "count": item[1]} for item in values]
 
     return result
+
 
 @app.get("/api/stats/{short_code}/{period}")
 def get_click_stats_api(short_code: str, period: str, db: Session = Depends(get_db)):
